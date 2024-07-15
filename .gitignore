@@ -1,0 +1,5 @@
+VulkanTest
+shaders/*.spv
+obj/
+*.ini
+bin/
