@@ -7,11 +7,11 @@ LDFLAGS = -L$(VULKAN_SDK_PATH)/lib \
 			 -lvulkan 
 
 vertSources = $(shell find ./shaders -type f -name "*.vert")
-vertObjFiles = $(patsubst %.vert, %.vert.spv, $(vertSources))
+vertObjFiles = $(patsubst %.vert, obj/%.vert.spv, $(vertSources))
 fragSources = $(shell find ./shaders -type f -name "*.frag")
-fragObjFiles = $(patsubst %.frag, %.frag.spv, $(fragSources))
+fragObjFiles = $(patsubst %.frag, obj/%.frag.spv, $(fragSources))
 compSources = $(shell find ./shaders -type f -name "*.comp")
-compObjFiles = $(patsubst %.comp, %.comp.spv, $(compSources))
+compObjFiles = $(patsubst %.comp, obj/%.comp.spv, $(compSources))
 SRCS = $(shell find -type f -name "*.cpp" -not -path "*/mains/*")
 OBJS = $(patsubst ./%.cpp, obj/%.o, $(SRCS))
 MAINOUTS = FirstApp SecondApp
@@ -25,7 +25,8 @@ obj/%.o: %.cpp
 	@mkdir -p $(@D)
 	g++ $(CFLAGS) -c $< -o $@ 
 
-%.spv: %
+obj/%.spv: %
+	@mkdir -p $(@D)
 	glslc $< -o $@
 
 .PHONY: test clean

@@ -1,0 +1,23 @@
+#version 450
+
+const float PI = 3.1415926;
+
+layout(local_size_x = 16, local_size_y = 16) in;
+layout(binding = 0, rg16f) uniform readonly image2D H0K;
+layout(binding = 1, rgba16f) uniform writeonly image2D H0;
+layout(binding = 2) uniform readonly UBO {
+	int Size;
+	float LengthScale;
+	float CutoffHigh;
+	float CutoffLow;
+	float GravityAcceleration;
+	float Depth;
+} ubo;
+
+
+void main() {
+	ivec2 id = ivec2(gl_GlobalInvocationID.xy);
+	vec2 h0K = imageLoad(H0K, id).xy;
+	vec2 h0MinusK = imageLoad(H0K, ivec2((ubo.Size - id.x) % ubo.Size, (ubo.Size - id.y) % ubo.Size)).xy;
+	imageStore(H0, id, vec4(h0K.x, h0K.y, h0MinusK.x, -h0MinusK.y));
+}

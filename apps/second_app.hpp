@@ -2,6 +2,7 @@
 
 #include <vulkan/vulkan_core.h>
 
+#include <cstddef>
 #include <memory>
 
 #include "../lve/lve_descriptors.hpp"
@@ -17,8 +18,7 @@ class SecondApp {
    static constexpr int WIDTH = 800;
    static constexpr int HEIGHT = 600;
 
-   SecondApp(const char *);
-   SecondApp();
+   SecondApp(size_t);
    ~SecondApp();
 
    SecondApp(const SecondApp &) = delete;
@@ -45,13 +45,21 @@ class SecondApp {
            .addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4)
            .setPoolFlags(VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT)
            .build();
+   std::unique_ptr<LveDescriptorPool> computePool =
+       LveDescriptorPool::Builder(lveDevice)
+           .setMaxSets(6)
+           .addPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 3)
+           .addPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 3)
+           .build();
 
    std::unique_ptr<LveTerrain> terrain = nullptr;
 
    uint32_t xn = 0;
    uint32_t yn = 0;
 
-	std::vector<std::vector<glm::float32>> altittudeMap{};
+   size_t N;
+
+   std::vector<std::vector<glm::float32>> altittudeMap{};
 
    void fixViewer(LveGameObject &, float);
 };

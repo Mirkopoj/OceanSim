@@ -26,6 +26,7 @@
 #include "../systems/gui_system.hpp"
 #include "../systems/water_render_system.hpp"
 #include "second_app_frame_info.hpp"
+#include "systems/compute_system.hpp"
 
 // libs
 #define GLM_FORCE_RADIANS
@@ -35,7 +36,7 @@
 
 namespace lve {
 
-SecondApp::SecondApp() {
+SecondApp::SecondApp(size_t n) : N(n) {
    loadGameObjects();
 }
 
@@ -71,7 +72,8 @@ void SecondApp::run() {
    TerrainRenderSystem terrainRenderSystem{
        lveDevice, lveRenderer.getSwapChainRenderPass(),
        globalSetLayout->getDescriptorSetLayout(),
-       "shaders/water_shader.vert.spv", "shaders/water_shader.frag.spv"};
+       "obj/shaders/water_shader.vert.spv",
+       "obj/shaders/water_shader.frag.spv"};
 
    LveCamera camera{};
 
@@ -89,6 +91,129 @@ void SecondApp::run() {
    bool viento = false;
 
    size_t pipeline = 0;
+
+   MyTextureData buterfly(std::log2(N), N, 4, lveDevice,
+                          VK_FORMAT_R16G16B16A16_SFLOAT);
+   MyTextureData H0K(N, N, 2, lveDevice, VK_FORMAT_R16G16_SFLOAT);
+   MyTextureData WavesData(N, N, 4, lveDevice,
+                           VK_FORMAT_R16G16B16A16_SFLOAT);
+   /*
+MyTextureData H0(N, N, 4, lveDevice);
+MyTextureData ping_pong1(N, N, 2, lveDevice);
+MyTextureData ping_pong2(N, N, 2, lveDevice);
+MyTextureData DisplacementTurbulence(N, N, 4, lveDevice);
+MyTextureData Derivatives(N, N, 4, lveDevice);*/
+
+   typedef struct {
+      glm::uint Size;
+      glm::float32 LengthScale;
+      glm::float32 CutoffHigh;
+      glm::float32 CutoffLow;
+      glm::float32 GravityAcceleration;
+      glm::float32 Depth;
+   } comp_ubo;
+
+   std::unique_ptr<LveDescriptorSetLayout> gen_butterfly_desc_layout =
+       LveDescriptorSetLayout::Builder(lveDevice)
+           .addBinding(0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+                       VK_SHADER_STAGE_COMPUTE_BIT)
+           .addBinding(1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                       VK_SHADER_STAGE_COMPUTE_BIT)
+           .build();
+
+   ComputeSystem gen_butterfly{
+       lveDevice,
+       {gen_butterfly_desc_layout->getDescriptorSetLayout()},
+       "obj/shaders/gen_buterfly.comp.spv"};
+
+   VkDescriptorImageInfo butterflyImageInfo = {
+       .imageView = buterfly.ImageView,
+       .imageLayout = VK_IMAGE_LAYOUT_GENERAL,
+   };
+
+   VkDescriptorSet buterflyDescriptorSet = {};
+   std::unique_ptr<LveBuffer> compBuffer = std::make_unique<LveBuffer>(
+       lveDevice, sizeof(comp_ubo), 1, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+   auto bufferInfo = compBuffer->descriptorInfo();
+   LveDescriptorWriter(*gen_butterfly_desc_layout, *computePool)
+       .writeImage(0, &butterflyImageInfo)
+       .writeBuffer(1, &bufferInfo)
+       .build(buterflyDescriptorSet);
+
+   comp_ubo comp_buf;
+   comp_buf.Size = N;
+   comp_buf.LengthScale = 100.0;
+   comp_buf.CutoffHigh = 100.0;
+   comp_buf.CutoffLow = 0.1;
+   comp_buf.GravityAcceleration = 9.8;
+   comp_buf.Depth = 9.8;
+   compBuffer->map();
+   compBuffer->writeToBuffer(&comp_buf);
+   compBuffer->unmap();
+
+   gen_butterfly.instant_dispatch(std::log2(N), N / 2, 1,
+                                  buterflyDescriptorSet);
+
+   std::unique_ptr<LveDescriptorSetLayout> init_spec_desc_lay =
+       LveDescriptorSetLayout::Builder(lveDevice)
+           .addBinding(0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+                       VK_SHADER_STAGE_COMPUTE_BIT)
+           .addBinding(1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+                       VK_SHADER_STAGE_COMPUTE_BIT)
+           .addBinding(2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                       VK_SHADER_STAGE_COMPUTE_BIT)
+           .addBinding(3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                       VK_SHADER_STAGE_COMPUTE_BIT)
+           .build();
+
+   VkDescriptorImageInfo H0KImageInfo = {
+       .imageView = H0K.ImageView,
+       .imageLayout = VK_IMAGE_LAYOUT_GENERAL,
+   };
+
+   VkDescriptorImageInfo WavesDataImageInfo = {
+       .imageView = WavesData.ImageView,
+       .imageLayout = VK_IMAGE_LAYOUT_GENERAL,
+   };
+
+   VkDescriptorSet init_spec_desc_set = {};
+   std::unique_ptr<LveBuffer> specBuf =
+       std::make_unique<LveBuffer>(lveDevice, sizeof(SpectrumParameters),
+                                   2, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+                                   VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+   auto specBufferInfo = specBuf->descriptorInfo();
+   LveDescriptorWriter(*init_spec_desc_lay, *computePool)
+       .writeImage(0, &H0KImageInfo)
+       .writeImage(1, &WavesDataImageInfo)
+       .writeBuffer(2, &specBufferInfo)
+       .writeBuffer(3, &bufferInfo)
+       .build(init_spec_desc_set);
+
+   SpectrumParameters spec_params[2];
+   spec_params[0].scale = 500.0;
+   spec_params[0].angle = 30.0;
+   spec_params[0].spreadBlend = 0.0;
+   spec_params[0].swell = 150.0;
+   spec_params[0].alpha = 170.0;
+   spec_params[0].peakOmega = 0.0;
+   spec_params[0].gamma = 400.0;
+   spec_params[0].shortWavesFade = 0.0;
+   spec_params[1] = spec_params[0];
+   specBuf->map();
+   specBuf->writeToBuffer(spec_params);
+   specBuf->unmap();
+
+   ComputeSystem init_spec{lveDevice,
+                           {init_spec_desc_lay->getDescriptorSetLayout()},
+                           "obj/shaders/init_spectrum.comp.spv"};
+
+   init_spec.instant_dispatch(N, N, 1, init_spec_desc_set);
+
+   MyTextureData* imgs[3];
+   imgs[0] = &buterfly;
+   imgs[1] = &H0K;
+   imgs[2] = &WavesData;
 
    while (!lveWindow.shouldClose()) {
       glfwPollEvents();
@@ -130,7 +255,8 @@ void SecondApp::run() {
          uboBuffers[frameIndex]->writeToBuffer(&ubo);
          uboBuffers[frameIndex]->flush();
          myimgui.update(cameraController, caminata, pipeline,
-                        viewerObject.transform.translation, frameTime);
+                        viewerObject.transform.translation, frameTime,
+                        imgs, spec_params[0]);
 
          // render system
          lveRenderer.beginSwapChainRenderPass(commandBuffer);
@@ -144,6 +270,12 @@ void SecondApp::run() {
 
          lveRenderer.endSwapChainRenderPass(commandBuffer);
          lveRenderer.endFrame();
+
+         spec_params[1] = spec_params[0];
+         specBuf->map();
+         specBuf->writeToBuffer(spec_params);
+         specBuf->unmap();
+         init_spec.instant_dispatch(N, N, 1, init_spec_desc_set);
       }
    }
 

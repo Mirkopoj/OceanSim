@@ -1,0 +1,60 @@
+#version 450
+
+layout(local_size_x = 16, local_size_y = 16) in;
+layout(binding = 0, rgba16f) uniform readonly image2D H0;
+layout(binding = 1, rgba16f) uniform readonly image2D WavesData;
+layout(binding = 2, rgba16f) uniform image2D Displacement_Turbulence;
+layout(binding = 3, rgba16f) uniform writeonly image2D Derivatives;
+layout(binding = 4) uniform readonly Time { 
+	float time;
+	float delta_time;
+	float lambda;
+} delta;
+
+vec2 comp_mul(vec2 a, vec2 b){
+	return vec2(a.x * b.x - a.y * b.y, a.x * b.y + a.y * b.x);
+}
+
+void main() {
+	ivec2 id = ivec2(gl_GlobalInvocationID.xy);
+	vec4 wave = imageLoad(WavesData, id);
+	float phase = wave.w * delta.time;
+	vec2 exponent = vec2(cos(phase), sin(phase));
+	vec4 h0 = imageLoad(H0, id);
+	vec2 h =	
+			comp_mul(h0.xy, exponent) 
+		 + comp_mul(h0.zw, vec2(exponent.x, -exponent.y));
+	vec2 ih = vec2(-h.y, h.x);
+	
+	vec2 displacementX = ih * wave.x * wave.y;
+	vec2 displacementY = h;
+	vec2 displacementZ = ih * wave.z * wave.y;
+		 
+	vec2 displacementX_dx = -h * wave.x * wave.x * wave.y;
+	vec2 displacementY_dx = ih * wave.x;
+	vec2 displacementZ_dx = -h * wave.x * wave.z * wave.y;
+		 
+	vec2 displacementY_dz = ih * wave.z;
+	vec2 displacementZ_dz = -h * wave.z * wave.z * wave.y;
+
+	float Dx = displacementX.x - displacementZ.y;
+	float Dy = displacementY.x - displacementZ_dx.y;
+	float Dz = displacementX.y + displacementZ.x;
+
+	float Dyx = displacementY_dx.x - displacementY_dz.y;
+	float Dyz = displacementY_dx.y + displacementY_dz.x;
+	float Dxx = displacementX_dx.x - displacementZ_dz.y;
+	float Dzz = displacementX_dx.y + displacementZ_dz.x;
+
+	float Dxz = displacementY.y + displacementZ_dx.x;
+	float jacobian = (1 + delta.lambda * Dxx) * (1 + delta.lambda * Dzz) - delta.lambda * delta.lambda * Dxz * Dxz;
+	float prev_turbulence = imageLoad(Displacement_Turbulence, id).a;
+	
+	imageStore(Displacement_Turbulence, id, vec4(
+				delta.lambda * Dx, Dy, delta.lambda * Dz,
+				min(jacobian, prev_turbulence + delta.delta_time * 0.5 / max(jacobian, 0.5))
+			));
+
+	imageStore(Derivatives, id.xy, vec4(Dyx, Dyz, Dxx * delta.lambda, Dzz * delta.lambda));
+}
+

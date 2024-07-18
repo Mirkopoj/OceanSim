@@ -1,0 +1,22 @@
+#version 450
+
+layout(local_size_x = 16, local_size_y = 16) in;
+layout(binding = 0, rg16f) uniform readonly image2D inImg;
+layout(binding = 1, rg16f) uniform writeonly image2D outImg;
+layout(binding = 2, rgba16f) uniform readonly image2D butterfly;
+
+vec2 comp_mul(vec2 a, vec2 b){
+	return vec2(a.x * b.x - a.y * b.y, a.x * b.y + a.y * b.x);
+}
+
+void main() {	
+	int stage = 0;
+	vec4 data = imageLoad(butterfly, ivec2(stage, gl_GlobalInvocationID.x));
+
+	vec2 p = imageLoad(inImg, ivec2(data.z, gl_GlobalInvocationID.y)).rg;
+	vec2 q = imageLoad(inImg, ivec2(data.w, gl_GlobalInvocationID.y)).rg;
+	vec2 w = vec2(data.x, data.y);
+
+	vec4 res = vec4(p + comp_mul(w, q), 0 , 0);
+	imageStore(outImg, ivec2(gl_GlobalInvocationID.xy), res);
+}

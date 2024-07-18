@@ -239,9 +239,9 @@ void FirstApp::run() {
    }
 
    vkDeviceWaitIdle(lveDevice.device());
-   RemoveTexture(&initial_img, lveDevice);
+   /*RemoveTexture(&initial_img, lveDevice);
    RemoveTexture(&buffer_img, lveDevice);
-   RemoveTexture(&filtered_img, lveDevice);
+   RemoveTexture(&filtered_img, lveDevice);*/
 }
 
 void FirstApp::loadGameObjects() {

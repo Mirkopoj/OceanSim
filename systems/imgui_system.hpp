@@ -36,6 +36,7 @@ static void CheckVkResult(VkResult err) {
 
 bool LoadTextureFromFile(const char *filename, MyTextureData *tex_data,
                          lve::LveDevice &device);
+MyTextureData new_tex(size_t width, size_t height, size_t channels, lve::LveDevice &device);
 void RemoveTexture(MyTextureData *tex_data, lve::LveDevice &device);
 
 class ImGuiUi {

@@ -51,7 +51,9 @@ void ImGuiGui::new_frame() {
 }
 
 void ImGuiGui::update(lve::TerrainMovementController &cameraControler,
-                      bool &caminata, size_t &pipeline, glm::vec3 coord, float frameTime) {
+                      bool &caminata, size_t &pipeline, glm::vec3 coord,
+                      float frameTime, MyTextureData *img[],
+                      SpectrumParameters &params) {
    ImGui::Begin("Sensibilidad");
    ImGui::SliderFloat("Velocidad minima", &cameraControler.moveSpeedMin,
                       0.1f, cameraControler.moveSpeedMax);
@@ -60,7 +62,7 @@ void ImGuiGui::update(lve::TerrainMovementController &cameraControler,
    ImGui::SliderFloat("Sensibilidad del mouse", &cameraControler.lookSpeed,
                       0.1f, 20.f);
    ImGui::Text("position: %f, %f, %f", coord.x, coord.y, coord.z);
-   ImGui::Text("fps: %f, (%f ms)", 1/frameTime, frameTime*1000);
+   ImGui::Text("fps: %f, (%f ms)", 1 / frameTime, frameTime * 1000);
    ImGui::End();
 
    int caminata_i = caminata;
@@ -78,6 +80,26 @@ void ImGuiGui::update(lve::TerrainMovementController &cameraControler,
    ImGui::RadioButton("WireFrame", &pipeline_i, 1);
    ImGui::End();
    pipeline = pipeline_i;
+
+   ImGui::Begin("Textures");
+   ImGui::Image((ImTextureID)img[0]->DS,
+                ImVec2(img[0]->Height, img[0]->Height));
+   ImGui::Image((ImTextureID)img[1]->DS,
+                ImVec2(img[1]->Width, img[1]->Height));
+   ImGui::Image((ImTextureID)img[2]->DS,
+                ImVec2(img[2]->Width, img[2]->Height));
+   ImGui::End();
+
+   ImGui::Begin("Params");
+   ImGui::SliderFloat("scale", &params.scale, 0.f, 500.f);
+   ImGui::SliderFloat("angle", &params.angle, 0.f, 500.f);
+   ImGui::SliderFloat("spreadBlend", &params.spreadBlend, 0.f, 500.f);
+   ImGui::SliderFloat("swell", &params.swell, 0.f, 500.f);
+   ImGui::SliderFloat("alpha", &params.alpha, 0.f, 500.f);
+   ImGui::SliderFloat("peakOmega", &params.peakOmega, 0.f, 500.f);
+   ImGui::SliderFloat("gamma", &params.gamma, 0.f, 500.f);
+   ImGui::SliderFloat("shortWavesFade", &params.shortWavesFade, 0.f, 500.f);
+   ImGui::End();
 }
 
 void ImGuiGui::render(VkCommandBuffer command_buffer) {

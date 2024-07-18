@@ -1,7 +1,8 @@
 #include <vulkan/vulkan_core.h>
+
+#include "gui_system.hpp"
 #include "imgui/backends/imgui_impl_vulkan.h"
 #include "lve/lve_device.hpp"
-#include "imgui_system.hpp"
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb/stb_image.h>
 
@@ -42,54 +43,84 @@ bool LoadTextureFromFile(const char* filename, MyTextureData* tex_data,
 
    VkResult err;
 
+   // Upload to Buffer:
+   {
+      void* map = NULL;
+      err = vkMapMemory(device.device(), tex_data->UploadBufferMemory, 0,
+                        image_size, 0, &map);
+      check_vk_result(err);
+      memcpy(map, image_data, image_size);
+      VkMappedMemoryRange range[1] = {};
+      range[0].sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
+      range[0].memory = tex_data->UploadBufferMemory;
+      range[0].size = image_size;
+      err = vkFlushMappedMemoryRanges(device.device(), 1, range);
+      check_vk_result(err);
+      vkUnmapMemory(device.device(), tex_data->UploadBufferMemory);
+   }
+
+   // Release image memory using stb
+   stbi_image_free(image_data);
+
+   return true;
+}
+
+MyTextureData::MyTextureData(size_t width, size_t height, size_t channels,
+                             lve::LveDevice& device, VkFormat format)
+    : Width(width), Height(height), Channels(channels), device(device) {
+   // Calculate allocation size (in number of bytes)
+   size_t image_size = this->Width * this->Height * this->Channels * 2;
+
+   VkResult err;
+
    // Create the Vulkan image.
    {
       VkImageCreateInfo info = {};
       info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
       info.imageType = VK_IMAGE_TYPE_2D;
-      info.format = VK_FORMAT_R8G8B8A8_UNORM;
-      info.extent.width = tex_data->Width;
-      info.extent.height = tex_data->Height;
+      info.format = format;
+      info.extent.width = this->Width;
+      info.extent.height = this->Height;
       info.extent.depth = 1;
       info.mipLevels = 1;
       info.arrayLayers = 1;
       info.samples = VK_SAMPLE_COUNT_1_BIT;
       info.tiling = VK_IMAGE_TILING_OPTIMAL;
-      info.usage =
-          VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_STORAGE_BIT;
+      info.usage = VK_IMAGE_USAGE_SAMPLED_BIT |
+                   VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+                   VK_IMAGE_USAGE_STORAGE_BIT;
       info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
       info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-      err =
-          vkCreateImage(device.device(), &info, nullptr, &tex_data->Image);
-      CheckVkResult(err);
+      err = vkCreateImage(device.device(), &info, nullptr, &this->Image);
+      check_vk_result(err);
       VkMemoryRequirements req;
-      vkGetImageMemoryRequirements(device.device(), tex_data->Image, &req);
+      vkGetImageMemoryRequirements(device.device(), this->Image, &req);
       VkMemoryAllocateInfo alloc_info = {};
       alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
       alloc_info.allocationSize = req.size;
       alloc_info.memoryTypeIndex = findMemoryType(
           req.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, device);
       err = vkAllocateMemory(device.device(), &alloc_info, nullptr,
-                             &tex_data->ImageMemory);
-      CheckVkResult(err);
-      err = vkBindImageMemory(device.device(), tex_data->Image,
-                              tex_data->ImageMemory, 0);
-      CheckVkResult(err);
+                             &this->ImageMemory);
+      check_vk_result(err);
+      err = vkBindImageMemory(device.device(), this->Image,
+                              this->ImageMemory, 0);
+      check_vk_result(err);
    }
 
    // Create the Image View
    {
       VkImageViewCreateInfo info = {};
       info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-      info.image = tex_data->Image;
+      info.image = this->Image;
       info.viewType = VK_IMAGE_VIEW_TYPE_2D;
-      info.format = VK_FORMAT_R8G8B8A8_UNORM;
+      info.format = format;
       info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
       info.subresourceRange.levelCount = 1;
       info.subresourceRange.layerCount = 1;
       err = vkCreateImageView(device.device(), &info, nullptr,
-                              &tex_data->ImageView);
-      CheckVkResult(err);
+                              &this->ImageView);
+      check_vk_result(err);
    }
 
    // Create Sampler
@@ -108,14 +139,13 @@ bool LoadTextureFromFile(const char* filename, MyTextureData* tex_data,
       sampler_info.maxLod = 1000;
       sampler_info.maxAnisotropy = 1.0f;
       err = vkCreateSampler(device.device(), &sampler_info, nullptr,
-                            &tex_data->Sampler);
-      CheckVkResult(err);
+                            &this->Sampler);
+      check_vk_result(err);
    }
 
    // Create Descriptor Set using ImGUI's implementation
-   tex_data->DS = ImGui_ImplVulkan_AddTexture(
-       tex_data->Sampler, tex_data->ImageView,
-       VK_IMAGE_LAYOUT_GENERAL);
+   this->DS = ImGui_ImplVulkan_AddTexture(this->Sampler, this->ImageView,
+                                          VK_IMAGE_LAYOUT_GENERAL);
 
    // Create Upload Buffer
    {
@@ -125,42 +155,23 @@ bool LoadTextureFromFile(const char* filename, MyTextureData* tex_data,
       buffer_info.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
       buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
       err = vkCreateBuffer(device.device(), &buffer_info, nullptr,
-                           &tex_data->UploadBuffer);
-      CheckVkResult(err);
+                           &this->UploadBuffer);
+      check_vk_result(err);
       VkMemoryRequirements req;
-      vkGetBufferMemoryRequirements(device.device(),
-                                    tex_data->UploadBuffer, &req);
+      vkGetBufferMemoryRequirements(device.device(), this->UploadBuffer,
+                                    &req);
       VkMemoryAllocateInfo alloc_info = {};
       alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
       alloc_info.allocationSize = req.size;
       alloc_info.memoryTypeIndex = findMemoryType(
           req.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, device);
       err = vkAllocateMemory(device.device(), &alloc_info, nullptr,
-                             &tex_data->UploadBufferMemory);
-      CheckVkResult(err);
-      err = vkBindBufferMemory(device.device(), tex_data->UploadBuffer,
-                               tex_data->UploadBufferMemory, 0);
-      CheckVkResult(err);
+                             &this->UploadBufferMemory);
+      check_vk_result(err);
+      err = vkBindBufferMemory(device.device(), this->UploadBuffer,
+                               this->UploadBufferMemory, 0);
+      check_vk_result(err);
    }
-
-   // Upload to Buffer:
-   {
-      void* map = NULL;
-      err = vkMapMemory(device.device(), tex_data->UploadBufferMemory, 0,
-                        image_size, 0, &map);
-      CheckVkResult(err);
-      memcpy(map, image_data, image_size);
-      VkMappedMemoryRange range[1] = {};
-      range[0].sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
-      range[0].memory = tex_data->UploadBufferMemory;
-      range[0].size = image_size;
-      err = vkFlushMappedMemoryRanges(device.device(), 1, range);
-      CheckVkResult(err);
-      vkUnmapMemory(device.device(), tex_data->UploadBufferMemory);
-   }
-
-   // Release image memory using stb
-   stbi_image_free(image_data);
 
    // Create a command buffer that will perform following steps when hit in
    // the command queue.
@@ -177,13 +188,13 @@ bool LoadTextureFromFile(const char* filename, MyTextureData* tex_data,
 
       err = vkAllocateCommandBuffers(device.device(), &alloc_info,
                                      &command_buffer);
-      CheckVkResult(err);
+      check_vk_result(err);
 
       VkCommandBufferBeginInfo begin_info = {};
       begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
       begin_info.flags |= VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
       err = vkBeginCommandBuffer(command_buffer, &begin_info);
-      CheckVkResult(err);
+      check_vk_result(err);
    }
 
    // Copy to Image
@@ -195,7 +206,7 @@ bool LoadTextureFromFile(const char* filename, MyTextureData* tex_data,
       copy_barrier[0].newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
       copy_barrier[0].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
       copy_barrier[0].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-      copy_barrier[0].image = tex_data->Image;
+      copy_barrier[0].image = this->Image;
       copy_barrier[0].subresourceRange.aspectMask =
           VK_IMAGE_ASPECT_COLOR_BIT;
       copy_barrier[0].subresourceRange.levelCount = 1;
@@ -207,11 +218,11 @@ bool LoadTextureFromFile(const char* filename, MyTextureData* tex_data,
       VkBufferImageCopy region = {};
       region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
       region.imageSubresource.layerCount = 1;
-      region.imageExtent.width = tex_data->Width;
-      region.imageExtent.height = tex_data->Height;
+      region.imageExtent.width = this->Width;
+      region.imageExtent.height = this->Height;
       region.imageExtent.depth = 1;
       vkCmdCopyBufferToImage(
-          command_buffer, tex_data->UploadBuffer, tex_data->Image,
+          command_buffer, this->UploadBuffer, this->Image,
           VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
       VkImageMemoryBarrier use_barrier[1] = {};
@@ -222,7 +233,7 @@ bool LoadTextureFromFile(const char* filename, MyTextureData* tex_data,
       use_barrier[0].newLayout = VK_IMAGE_LAYOUT_GENERAL;
       use_barrier[0].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
       use_barrier[0].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-      use_barrier[0].image = tex_data->Image;
+      use_barrier[0].image = this->Image;
       use_barrier[0].subresourceRange.aspectMask =
           VK_IMAGE_ASPECT_COLOR_BIT;
       use_barrier[0].subresourceRange.levelCount = 1;
@@ -239,24 +250,22 @@ bool LoadTextureFromFile(const char* filename, MyTextureData* tex_data,
       end_info.commandBufferCount = 1;
       end_info.pCommandBuffers = &command_buffer;
       err = vkEndCommandBuffer(command_buffer);
-      CheckVkResult(err);
+      check_vk_result(err);
       err = vkQueueSubmit(device.graphicsQueue(), 1, &end_info,
                           VK_NULL_HANDLE);
-      CheckVkResult(err);
+      check_vk_result(err);
       err = vkDeviceWaitIdle(device.device());
-      CheckVkResult(err);
+      check_vk_result(err);
    }
-
-   return true;
 }
 
 // Helper function to cleanup an image loaded with LoadTextureFromFile
-void RemoveTexture(MyTextureData* tex_data, lve::LveDevice& device) {
-   vkFreeMemory(device.device(), tex_data->UploadBufferMemory, nullptr);
-   vkDestroyBuffer(device.device(), tex_data->UploadBuffer, nullptr);
-   vkDestroySampler(device.device(), tex_data->Sampler, nullptr);
-   vkDestroyImageView(device.device(), tex_data->ImageView, nullptr);
-   vkDestroyImage(device.device(), tex_data->Image, nullptr);
-   vkFreeMemory(device.device(), tex_data->ImageMemory, nullptr);
-   ImGui_ImplVulkan_RemoveTexture(tex_data->DS);
+MyTextureData::~MyTextureData() {
+   vkFreeMemory(this->device.device(), this->UploadBufferMemory, nullptr);
+   vkDestroyBuffer(this->device.device(), this->UploadBuffer, nullptr);
+   vkDestroySampler(this->device.device(), this->Sampler, nullptr);
+   vkDestroyImageView(this->device.device(), this->ImageView, nullptr);
+   vkDestroyImage(this->device.device(), this->Image, nullptr);
+   vkFreeMemory(this->device.device(), this->ImageMemory, nullptr);
+   ImGui_ImplVulkan_RemoveTexture(this->DS);
 }
