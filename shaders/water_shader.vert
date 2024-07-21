@@ -10,7 +10,7 @@ layout(set = 0, binding = 0) uniform GloablUbo {
    vec4 ambientLightColor;
 	vec3 lightPosition;
 	uint cols;
-	uint time;
+	float time;
 }
 ubo;
 
@@ -34,7 +34,7 @@ void main() {
 
 	float a = 1;
 	float w = 0.1; 
-	float f = 0.00000001;
+	float f = 1;
 
 	float t = ubo.time;
 

@@ -81,25 +81,39 @@ void ImGuiGui::update(lve::TerrainMovementController &cameraControler,
    ImGui::End();
    pipeline = pipeline_i;
 
-   ImGui::Begin("Textures");
+   ImGui::Begin("Init");
    ImGui::Image((ImTextureID)img[0]->DS,
                 ImVec2(img[0]->Height, img[0]->Height));
-   ImGui::Image((ImTextureID)img[1]->DS,
-                ImVec2(img[1]->Width, img[1]->Height));
+   ImGui::End();
+
+   ImGui::Begin("OnParamChange");
    ImGui::Image((ImTextureID)img[2]->DS,
                 ImVec2(img[2]->Width, img[2]->Height));
+   ImGui::Image((ImTextureID)img[1]->DS,
+                ImVec2(img[1]->Width, img[1]->Height));
+   ImGui::SameLine();
+   ImGui::Image((ImTextureID)img[3]->DS,
+                ImVec2(img[3]->Width, img[3]->Height));
+   ImGui::End();
+
+   ImGui::Begin("EveryFrame");
+   ImGui::Image((ImTextureID)img[4]->DS,
+                ImVec2(img[4]->Width, img[4]->Height));
+   ImGui::Image((ImTextureID)img[5]->DS,
+                ImVec2(img[5]->Width, img[5]->Height));
    ImGui::End();
 
    ImGui::Begin("Params");
    ImGui::SliderFloat("scale", &params.scale, 0.f, 500.f);
-   ImGui::SliderFloat("angle", &params.angle, 0.f, 500.f);
-   ImGui::SliderFloat("spreadBlend", &params.spreadBlend, 0.f, 500.f);
+   ImGui::SliderFloat("angle", &params.angle, 0.f, 6.3f);
+   ImGui::SliderFloat("spreadBlend", &params.spreadBlend, 0.f, 1.f);
    ImGui::SliderFloat("swell", &params.swell, 0.f, 500.f);
    ImGui::SliderFloat("alpha", &params.alpha, 0.f, 500.f);
-   ImGui::SliderFloat("peakOmega", &params.peakOmega, 0.f, 500.f);
-   ImGui::SliderFloat("gamma", &params.gamma, 0.f, 500.f);
-   ImGui::SliderFloat("shortWavesFade", &params.shortWavesFade, 0.f, 500.f);
+   ImGui::SliderFloat("peakOmega", &params.peakOmega, 0.f, 15.f);
+   ImGui::SliderFloat("gamma", &params.gamma, 0.f, 1.f);
+   ImGui::SliderFloat("shortWavesFade", &params.shortWavesFade, 0.f, 40.f);
    ImGui::End();
+
 }
 
 void ImGuiGui::render(VkCommandBuffer command_buffer) {

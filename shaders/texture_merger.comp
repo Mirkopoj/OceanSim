@@ -1,0 +1,43 @@
+#version 450
+
+layout(local_size_x = 16, local_size_y = 16) in;
+layout(binding = 0, rgba16f) uniform readonly image2D DxDzDyDxz;
+layout(binding = 1, rgba16f) uniform readonly image2D DyxDyzDxxDzz;
+layout(binding = 2, rgba16f) uniform image2D Displacement_Turbulence;
+layout(binding = 3, rgba16f) uniform writeonly image2D Derivatives;
+layout(binding = 4) buffer readonly Time { 
+	float time;
+	float delta_time;
+	float lambda;
+} delta;
+
+vec2 comp_mul(vec2 a, vec2 b){
+	return vec2(a.x * b.x - a.y * b.y, a.x * b.y + a.y * b.x);
+}
+
+void main() {
+	ivec2 id = ivec2(gl_GlobalInvocationID.xy);
+
+	vec4 disp_tur = imageLoad(DxDzDyDxz, id);
+	float Dx = disp_tur.x;
+	float Dy = disp_tur.y;
+	float Dz = disp_tur.z;
+
+	vec4 derv = imageLoad(DyxDyzDxxDzz, id);
+	float Dyx = derv.x;
+	float Dyz = derv.y;
+	float Dxx = derv.z;
+	float Dzz = derv.w;
+
+	float Dxz = disp_tur.w;
+	float jacobian = (1 + delta.lambda * Dxx) * (1 + delta.lambda * Dzz) - delta.lambda * delta.lambda * Dxz * Dxz;
+	float prev_turbulence = imageLoad(Displacement_Turbulence, id).a;
+	
+	imageStore(Displacement_Turbulence, id, vec4(
+				delta.lambda * Dx, Dy, delta.lambda * Dz,
+				1+0*min(jacobian, prev_turbulence + delta.delta_time * 0.5 / max(jacobian, 0.5))
+			));
+
+	imageStore(Derivatives, id.xy, vec4(Dyx, Dyz, Dxx * delta.lambda, 1+0*Dzz * delta.lambda));
+}
+

@@ -41,15 +41,15 @@ class SecondApp {
            .build();
    std::unique_ptr<LveDescriptorPool> imguiPool =
        LveDescriptorPool::Builder(lveDevice)
-           .setMaxSets(4)
-           .addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4)
+           .setMaxSets(400)
+           .addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 400)
            .setPoolFlags(VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT)
            .build();
    std::unique_ptr<LveDescriptorPool> computePool =
        LveDescriptorPool::Builder(lveDevice)
-           .setMaxSets(6)
-           .addPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 3)
-           .addPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 3)
+           .setMaxSets(200)
+           .addPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 300)
+           .addPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 600)
            .build();
 
    std::unique_ptr<LveTerrain> terrain = nullptr;

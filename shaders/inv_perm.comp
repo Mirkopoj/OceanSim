@@ -1,15 +1,21 @@
 #version 450
 
 layout(local_size_x = 16, local_size_y = 16) in;
-layout(binding = 0, rg16f) uniform readonly image2D inImg;
-layout(binding = 1, rg16f) uniform writeonly image2D outImg;
+layout(binding = 0, rgba16f) uniform image2D img;
+layout(binding = 1) buffer readonly UBO {
+	int Size;
+	float LengthScale;
+	float CutoffHigh;
+	float CutoffLow;
+	float GravityAcceleration;
+	float Depth;
+} ubo;
 
 void main() {	
-	vec2 res = imageLoad(inImg, ivec2(gl_GlobalInvocationID.xy)).rg;
+	vec4 res = imageLoad(img, ivec2(gl_GlobalInvocationID.xy));
 
 	res *= 1.0 - 2.0 * ((gl_GlobalInvocationID.x + gl_GlobalInvocationID.y) % 2);
-	uint N = gl_WorkGroupSize.x * gl_NumWorkGroups.x; 
-	res /= N * N;
+	res /= ubo.Size * ubo.Size;
 
-	imageStore(outImg, ivec2(gl_GlobalInvocationID.xy), vec4(res, 0, 0));
+	imageStore(img, ivec2(gl_GlobalInvocationID.xy), res);
 }
