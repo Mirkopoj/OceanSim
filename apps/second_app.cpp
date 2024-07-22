@@ -70,12 +70,6 @@ void SecondApp::run() {
           .build(globalDescriptorSets[i]);
    }
 
-   TerrainRenderSystem terrainRenderSystem{
-       lveDevice, lveRenderer.getSwapChainRenderPass(),
-       globalSetLayout->getDescriptorSetLayout(),
-       "obj/shaders/water_shader.vert.spv",
-       "obj/shaders/water_shader.frag.spv"};
-
    LveCamera camera{};
 
    float cameraHeight = 2.f;
@@ -111,7 +105,7 @@ void SecondApp::run() {
    MyTextureData Displacement_Turbulence(N, N, 4, lveDevice,
                                          VK_FORMAT_R16G16B16A16_SFLOAT);
    MyTextureData Derivatives(N, N, 4, lveDevice,
-                           VK_FORMAT_R16G16B16A16_SFLOAT);
+                             VK_FORMAT_R16G16B16A16_SFLOAT);
 
    typedef struct {
       glm::uint Size;
@@ -153,11 +147,11 @@ void SecondApp::run() {
 
    comp_ubo comp_buf;
    comp_buf.Size = N;
-   comp_buf.LengthScale = 100.0;
-   comp_buf.CutoffHigh = 100.0;
-   comp_buf.CutoffLow = 0.1;
-   comp_buf.GravityAcceleration = 9.8;
-   comp_buf.Depth = 9.8;
+   comp_buf.LengthScale = 250.0;
+   comp_buf.CutoffHigh = 9999.0;
+   comp_buf.CutoffLow = 0.0001f;
+   comp_buf.GravityAcceleration = 9.81;
+   comp_buf.Depth = 500.0;
    compBuffer->map();
    compBuffer->writeToBuffer(&comp_buf);
    compBuffer->unmap();
@@ -203,14 +197,22 @@ void SecondApp::run() {
 
    SpectrumParameters spec_params[2];
    spec_params[0].scale = 500.0;
-   spec_params[0].angle = 0.0;
-   spec_params[0].spreadBlend = 0.0;
-   spec_params[0].swell = 150.0;
-   spec_params[0].alpha = 170.0;
-   spec_params[0].peakOmega = 0.0;
-   spec_params[0].gamma = 1.0;
-   spec_params[0].shortWavesFade = 0.0;
-   spec_params[1] = spec_params[0];
+   spec_params[0].angle = 0.502;
+   spec_params[0].spreadBlend = 1.0;
+   spec_params[0].swell = 0.198;
+   spec_params[0].alpha = 100000.0;
+   spec_params[0].peakOmega = 3.3;
+   spec_params[0].gamma = 3.3;
+   spec_params[0].shortWavesFade = 0.01;
+
+   spec_params[1].scale = 1.0;
+   spec_params[1].angle = 0.0;
+   spec_params[1].spreadBlend = 1.0;
+   spec_params[1].swell = 1.0;
+   spec_params[1].alpha = 300000.0;
+   spec_params[1].peakOmega = 3.3;
+   spec_params[1].gamma = 3.3;
+   spec_params[1].shortWavesFade = 0.01;
    specBuf->map();
    specBuf->writeToBuffer(spec_params);
    specBuf->unmap();
@@ -291,7 +293,8 @@ void SecondApp::run() {
 
    std::unique_ptr<LveBuffer> stageBuffer =
        std::make_unique<LveBuffer>(lveDevice, sizeof(glm::int32), 1,
-                                   VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+                                   VK_BUFFER_USAGE_TRANSFER_DST_BIT |
+                                       VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
                                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
    auto stageBufferInfo = stageBuffer->descriptorInfo();
 
@@ -424,10 +427,9 @@ void SecondApp::run() {
        .writeBuffer(4, &lambdaBufferInfo)
        .build(text_merg_desc_set);
 
-   ComputeSystem tex_merg{
-       lveDevice,
-       {text_merg_desc_lay->getDescriptorSetLayout()},
-       "obj/shaders/texture_merger.comp.spv"};
+   ComputeSystem tex_merg{lveDevice,
+                          {text_merg_desc_lay->getDescriptorSetLayout()},
+                          "obj/shaders/texture_merger.comp.spv"};
 
    lambda_buff lamda_buf;
    lamda_buf.lambda = 1.0f;
@@ -439,6 +441,233 @@ void SecondApp::run() {
    imgs[3] = &H0;
    imgs[4] = &Displacement_Turbulence;
    imgs[5] = &Derivatives;
+
+   std::unique_ptr<LveDescriptorSetLayout> disp_desc_set_lay =
+       LveDescriptorSetLayout::Builder(lveDevice)
+           .addBinding(0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+                       VK_SHADER_STAGE_VERTEX_BIT)
+           .addBinding(1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+                       VK_SHADER_STAGE_VERTEX_BIT)
+           .build();
+
+   VkDescriptorSet disp_desc_set = {};
+
+   LveDescriptorWriter(*disp_desc_set_lay, *computePool)
+       .writeImage(0, &Displacement_TurbulenceImageInfo)
+       .writeImage(1, &DerivativesImageInfo)
+       .build(disp_desc_set);
+
+   TerrainRenderSystem terrainRenderSystem{
+       lveDevice,
+       lveRenderer.getSwapChainRenderPass(),
+       globalSetLayout->getDescriptorSetLayout(),
+       "obj/shaders/water_shader.vert.spv",
+       "obj/shaders/water_shader.frag.spv",
+       disp_desc_set,
+       disp_desc_set_lay->getDescriptorSetLayout()};
+
+   VkCommandBuffer computeCommandBuffer;
+   VkCommandBufferAllocateInfo allocInfo = {};
+   allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+   allocInfo.commandPool = lveDevice.getCommandPool();
+   allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+   allocInfo.commandBufferCount = 1;
+
+   vkAllocateCommandBuffers(lveDevice.device(), &allocInfo,
+                            &computeCommandBuffer);
+
+   VkCommandBufferBeginInfo beginInfo = {};
+   beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+
+   vkBeginCommandBuffer(computeCommandBuffer, &beginInfo);
+
+   vkCmdBindPipeline(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE,
+                     timed_spec.get_pipeline());
+   vkCmdBindDescriptorSets(computeCommandBuffer,
+                           VK_PIPELINE_BIND_POINT_COMPUTE,
+                           timed_spec.get_pipeline_layout(), 0, 1,
+                           &timed_spec_desc_set, 0, nullptr);
+   vkCmdDispatch(computeCommandBuffer, N, N, 1);
+
+   vkCmdBindPipeline(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE,
+                     h_butterfly.get_pipeline());
+
+   for (size_t i = 0; i < logN; ++i) {
+      vkCmdUpdateBuffer(computeCommandBuffer, stageBuffer->getBuffer(), 0,
+                        sizeof(uint32_t), &i);
+      VkBufferMemoryBarrier bufferBarrier = {};
+      bufferBarrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+      bufferBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+      bufferBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+      bufferBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+      bufferBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+      bufferBarrier.buffer = stageBuffer->getBuffer();
+      bufferBarrier.offset = 0;
+      bufferBarrier.size = VK_WHOLE_SIZE;
+      VkDescriptorSet desc =
+          i % 2 == 0 ? butterfly_desc_set_1_1 : butterfly_desc_set_2_1;
+      vkCmdPipelineBarrier(
+          computeCommandBuffer,
+          VK_PIPELINE_STAGE_TRANSFER_BIT,        // srcStageMask
+          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,  // dstStageMask
+          0, 0, nullptr, 1, &bufferBarrier, 0, nullptr);
+      vkCmdBindDescriptorSets(
+          computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE,
+          h_butterfly.get_pipeline_layout(), 0, 1, &desc, 0, nullptr);
+      vkCmdDispatch(computeCommandBuffer, N, N, 1);
+      VkMemoryBarrier memoryBarrier = {};
+      memoryBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+      memoryBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+      memoryBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+      vkCmdPipelineBarrier(
+          computeCommandBuffer,
+          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,  // srcStageMask
+          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,  // dstStageMask
+          0, 1, &memoryBarrier, 0, nullptr, 0, nullptr);
+   }
+   for (size_t i = 0; i < logN; ++i) {
+      vkCmdUpdateBuffer(computeCommandBuffer, stageBuffer->getBuffer(), 0,
+                        sizeof(uint32_t), &i);
+      VkBufferMemoryBarrier bufferBarrier = {};
+      bufferBarrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+      bufferBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+      bufferBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+      bufferBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+      bufferBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+      bufferBarrier.buffer = stageBuffer->getBuffer();
+      bufferBarrier.offset = 0;
+      bufferBarrier.size = VK_WHOLE_SIZE;
+      VkDescriptorSet desc =
+          i % 2 == 0 ? butterfly_desc_set_1_2 : butterfly_desc_set_2_2;
+      vkCmdPipelineBarrier(
+          computeCommandBuffer,
+          VK_PIPELINE_STAGE_TRANSFER_BIT,        // srcStageMask
+          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,  // dstStageMask
+          0, 0, nullptr, 1, &bufferBarrier, 0, nullptr);
+      vkCmdBindDescriptorSets(
+          computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE,
+          h_butterfly.get_pipeline_layout(), 0, 1, &desc, 0, nullptr);
+      vkCmdDispatch(computeCommandBuffer, N, N, 1);
+      VkMemoryBarrier memoryBarrier = {};
+      memoryBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+      memoryBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+      memoryBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+      vkCmdPipelineBarrier(
+          computeCommandBuffer,
+          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,  // srcStageMask
+          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,  // dstStageMask
+          0, 1, &memoryBarrier, 0, nullptr, 0, nullptr);
+   }
+   vkCmdBindPipeline(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE,
+                     v_butterfly.get_pipeline());
+   for (size_t i = 0; i < logN; ++i) {
+      vkCmdUpdateBuffer(computeCommandBuffer, stageBuffer->getBuffer(), 0,
+                        sizeof(uint32_t), &i);
+      VkBufferMemoryBarrier bufferBarrier = {};
+      bufferBarrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+      bufferBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+      bufferBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+      bufferBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+      bufferBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+      bufferBarrier.buffer = stageBuffer->getBuffer();
+      bufferBarrier.offset = 0;
+      bufferBarrier.size = VK_WHOLE_SIZE;
+      VkDescriptorSet desc =
+          i % 2 == 0 ? butterfly_desc_set_1_1 : butterfly_desc_set_2_1;
+      vkCmdPipelineBarrier(
+          computeCommandBuffer,
+          VK_PIPELINE_STAGE_TRANSFER_BIT,        // srcStageMask
+          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,  // dstStageMask
+          0, 0, nullptr, 1, &bufferBarrier, 0, nullptr);
+      vkCmdBindDescriptorSets(
+          computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE,
+          v_butterfly.get_pipeline_layout(), 0, 1, &desc, 0, nullptr);
+      vkCmdDispatch(computeCommandBuffer, N, N, 1);
+      VkMemoryBarrier memoryBarrier = {};
+      memoryBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+      memoryBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+      memoryBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+      vkCmdPipelineBarrier(
+          computeCommandBuffer,
+          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,  // srcStageMask
+          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,  // dstStageMask
+          0, 1, &memoryBarrier, 0, nullptr, 0, nullptr);
+   }
+   for (size_t i = 0; i < logN; ++i) {
+      vkCmdUpdateBuffer(computeCommandBuffer, stageBuffer->getBuffer(), 0,
+                        sizeof(uint32_t), &i);
+      VkBufferMemoryBarrier bufferBarrier = {};
+      bufferBarrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+      bufferBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+      bufferBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+      bufferBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+      bufferBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+      bufferBarrier.buffer = stageBuffer->getBuffer();
+      bufferBarrier.offset = 0;
+      bufferBarrier.size = VK_WHOLE_SIZE;
+      VkDescriptorSet desc =
+          i % 2 == 0 ? butterfly_desc_set_1_2 : butterfly_desc_set_2_2;
+      vkCmdPipelineBarrier(
+          computeCommandBuffer,
+          VK_PIPELINE_STAGE_TRANSFER_BIT,        // srcStageMask
+          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,  // dstStageMask
+          0, 0, nullptr, 1, &bufferBarrier, 0, nullptr);
+      vkCmdBindDescriptorSets(
+          computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE,
+          v_butterfly.get_pipeline_layout(), 0, 1, &desc, 0, nullptr);
+      vkCmdDispatch(computeCommandBuffer, N, N, 1);
+      VkMemoryBarrier memoryBarrier = {};
+      memoryBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+      memoryBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+      memoryBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+      vkCmdPipelineBarrier(
+          computeCommandBuffer,
+          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,  // srcStageMask
+          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,  // dstStageMask
+          0, 1, &memoryBarrier, 0, nullptr, 0, nullptr);
+   }
+   vkCmdBindPipeline(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE,
+                     perm_inv.get_pipeline());
+   vkCmdBindDescriptorSets(computeCommandBuffer,
+                           VK_PIPELINE_BIND_POINT_COMPUTE,
+                           perm_inv.get_pipeline_layout(), 0, 1,
+                           &perm_inv_desc_set_1, 0, nullptr);
+   vkCmdDispatch(computeCommandBuffer, N, N, 1);
+   VkMemoryBarrier memoryBarrier = {};
+   memoryBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+   memoryBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+   memoryBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+   vkCmdPipelineBarrier(
+       computeCommandBuffer,
+       VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,  // srcStageMask
+       VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,  // dstStageMask
+       0, 1, &memoryBarrier, 0, nullptr, 0, nullptr);
+   vkCmdBindDescriptorSets(computeCommandBuffer,
+                           VK_PIPELINE_BIND_POINT_COMPUTE,
+                           perm_inv.get_pipeline_layout(), 0, 1,
+                           &perm_inv_desc_set_2, 0, nullptr);
+   vkCmdDispatch(computeCommandBuffer, N, N, 1);
+   vkCmdPipelineBarrier(
+       computeCommandBuffer,
+       VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,  // srcStageMask
+       VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,  // dstStageMask
+       0, 1, &memoryBarrier, 0, nullptr, 0, nullptr);
+   vkCmdBindPipeline(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE,
+                     tex_merg.get_pipeline());
+   vkCmdBindDescriptorSets(computeCommandBuffer,
+                           VK_PIPELINE_BIND_POINT_COMPUTE,
+                           tex_merg.get_pipeline_layout(), 0, 1,
+                           &text_merg_desc_set, 0, nullptr);
+   vkCmdDispatch(computeCommandBuffer, N, N, 1);
+   memoryBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+   memoryBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+   memoryBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+   vkCmdPipelineBarrier(
+       computeCommandBuffer,
+       VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,  // srcStageMask
+       VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,  // dstStageMask
+       0, 1, &memoryBarrier, 0, nullptr, 0, nullptr);
+   vkEndCommandBuffer(computeCommandBuffer);
 
    float time = 0;
    while (!lveWindow.shouldClose()) {
@@ -503,43 +732,14 @@ void SecondApp::run() {
          lambdaBuffer->map();
          lambdaBuffer->writeToBuffer(&lamda_buf);
          lambdaBuffer->unmap();
-         timed_spec.instant_dispatch(N, N, 1, timed_spec_desc_set);
 
-         for (int i = 0; i < logN; ++i) {
-            VkDescriptorSet desc = i % 2 == 0 ? butterfly_desc_set_1_1
-                                                : butterfly_desc_set_2_1;
-            stageBuffer->map();
-            stageBuffer->writeToBuffer(&i);
-            stageBuffer->unmap();
-            h_butterfly.instant_dispatch(N, N, 1, desc);
-         }
-         for (int i = 0; i < logN; ++i) {
-            VkDescriptorSet desc = i % 2 == 0 ? butterfly_desc_set_1_2
-                                                : butterfly_desc_set_2_2;
-            stageBuffer->map();
-            stageBuffer->writeToBuffer(&i);
-            stageBuffer->unmap();
-            h_butterfly.instant_dispatch(N, N, 1, desc);
-         }
-         for (int i = 0; i < logN; ++i) {
-            VkDescriptorSet desc = i % 2 == 0 ? butterfly_desc_set_1_1
-                                                : butterfly_desc_set_2_1;
-            stageBuffer->map();
-            stageBuffer->writeToBuffer(&i);
-            stageBuffer->unmap();
-            v_butterfly.instant_dispatch(N, N, 1, desc);
-         }
-         for (int i = 0; i < logN; ++i) {
-            VkDescriptorSet desc = i % 2 == 0 ? butterfly_desc_set_1_2
-                                                : butterfly_desc_set_2_2;
-            stageBuffer->map();
-            stageBuffer->writeToBuffer(&i);
-            stageBuffer->unmap();
-            v_butterfly.instant_dispatch(N, N, 1, desc);
-         }
-         perm_inv.instant_dispatch(N, N, 1, perm_inv_desc_set_1);
-         perm_inv.instant_dispatch(N, N, 1, perm_inv_desc_set_2);
-			tex_merg.instant_dispatch(N, N, 1, text_merg_desc_set);
+         VkSubmitInfo submitInfo = {};
+         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+         submitInfo.commandBufferCount = 1;
+         submitInfo.pCommandBuffers = &computeCommandBuffer;
+         vkQueueSubmit(lveDevice.computeQueue(), 1, &submitInfo,
+                       VK_NULL_HANDLE);
+         vkQueueWaitIdle(lveDevice.computeQueue());
 
          if (spec_params[0].scale != spec_params[1].scale ||
              spec_params[0].angle != spec_params[1].angle ||
@@ -564,8 +764,8 @@ void SecondApp::run() {
 }
 
 void SecondApp::loadGameObjects() {
-   yn = 100;
-   xn = 100;
+   yn = N;
+   xn = N;
    for (size_t x = 0; x < xn; ++x) {
       std::vector<glm::float32> row;
       for (size_t y = 0; y < yn; ++y) {

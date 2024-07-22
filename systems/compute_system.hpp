@@ -22,6 +22,12 @@ class ComputeSystem {
    void await();
    void instant_dispatch(int width, int height, int channels,
                          VkDescriptorSet &DescriptorSet);
+   VkPipeline get_pipeline() {
+      return this->computePipeline;
+   }
+   VkPipelineLayout get_pipeline_layout() {
+      return this->pipelineLayout;
+   }
 
   private:
    LveDevice &lveDevice;

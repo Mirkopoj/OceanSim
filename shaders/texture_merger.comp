@@ -35,9 +35,9 @@ void main() {
 	
 	imageStore(Displacement_Turbulence, id, vec4(
 				delta.lambda * Dx, Dy, delta.lambda * Dz,
-				1+0*min(jacobian, prev_turbulence + delta.delta_time * 0.5 / max(jacobian, 0.5))
+				min(jacobian, prev_turbulence + delta.delta_time * 0.5 / max(jacobian, 0.5))
 			));
 
-	imageStore(Derivatives, id.xy, vec4(Dyx, Dyz, Dxx * delta.lambda, 1+0*Dzz * delta.lambda));
+	imageStore(Derivatives, id.xy, vec4(Dyx, Dyz, Dxx * delta.lambda, Dzz * delta.lambda));
 }
 

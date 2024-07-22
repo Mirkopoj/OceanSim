@@ -14,11 +14,8 @@ layout(set = 0, binding = 0) uniform GloablUbo {
 }
 ubo;
 
-layout(push_constant) uniform Push {
-   mat4 modelMatrix;
-   mat4 normalMatrix;
-}
-push;
+layout(set = 1, binding = 0, rgba16f) uniform readonly image2D Displacement_Turbulence;
+layout(set = 1, binding = 1, rgba16f) uniform readonly image2D Derivatives;
 
 void main() {
 	float i = gl_VertexIndex;
@@ -32,25 +29,20 @@ void main() {
 	float z = s * mod(i, 2) + floor(c / xn) * 2 + floor(i / n) * 2;
 	float x = d * (xn - 1) + s * mod(floor((r + d) / 2), xn);
 
-	float a = 1;
-	float w = 0.1; 
-	float f = 1;
+	ivec2 id = ivec2(x, z);
 
-	float t = ubo.time;
+	vec4 derivatives = imageLoad(Derivatives, id);
+	vec2 slope = vec2(derivatives.x / (1 + derivatives.z),
+                derivatives.y / (1 + derivatives.w));
+   vec3 normal = vec3(-slope.x, -1, -slope.y);
 
-	float y = a * sin(x * w + t * f);
-
-	float yn = a * cos(x * w + t * f);
-	vec3 dx = normalize(vec3(1, yn, 0));
-	vec3 dz = vec3(0, 0, 1);
-	vec3 normal = cross(dx, dz);
-
-	vec3 position = vec3(x, y, z);
-   vec4 positionWorld = push.modelMatrix * vec4(position ,1.0);
+	vec3 position = vec3(x, 0, z)
+		+ imageLoad(Displacement_Turbulence, id).xyz;
+   vec4 positionWorld = vec4(position, 1.0);
 
    gl_Position = ubo.projection * ubo.view * positionWorld;
 
-   fragNormalWorld = normalize(mat3(push.normalMatrix) * normal);
+   fragNormalWorld = normalize(normal);
    fragPosWorld = position;
    fragColor = vec3(0, 0, 1);
 }

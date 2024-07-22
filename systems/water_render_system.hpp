@@ -20,7 +20,9 @@ class TerrainRenderSystem {
    TerrainRenderSystem(LveDevice &device, VkRenderPass renderPass,
                        VkDescriptorSetLayout globalSetLayout,
                        const std::string &vertFilepath,
-                       const std::string &fragFilepath);
+                       const std::string &fragFilepath,
+                       VkDescriptorSet dispDesc,
+                       VkDescriptorSetLayout dispLay);
    ~TerrainRenderSystem();
 
    TerrainRenderSystem(const TerrainRenderSystem &) = delete;
@@ -29,13 +31,16 @@ class TerrainRenderSystem {
    void renderTerrain(FrameInfo &frameInfo, PipeLineType pipeline);
 
   private:
-   void createPipelineLayout(VkDescriptorSetLayout globalSetLayout);
+   void createPipelineLayout(VkDescriptorSetLayout globalSetLayout,
+                             VkDescriptorSetLayout dispSetLayout);
    void createPipeline(VkRenderPass renderPass,
                        const std::string &vertFilepath,
                        const std::string &fragFilepath,
                        PipeLineType pipeline);
 
    LveDevice &lveDevice;
+
+   VkDescriptorSet displacementDesciptor;
 
    std::unique_ptr<LvePipeline> lvePipeline[2];
    VkPipelineLayout pipelineLayout;
