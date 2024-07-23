@@ -866,8 +866,8 @@ void SecondApp::run() {
 }
 
 void SecondApp::loadGameObjects() {
-   yn = N;
-   xn = N;
+   yn = N*5;
+   xn = N*5;
    for (size_t x = 0; x < xn; ++x) {
       std::vector<glm::float32> row;
       for (size_t y = 0; y < yn; ++y) {

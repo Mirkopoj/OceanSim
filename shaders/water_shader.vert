@@ -30,7 +30,7 @@ void main() {
 	float z = s * mod(i, 2) + floor(c / xn) * 2 + floor(i / n) * 2;
 	float x = d * (xn - 1) + s * mod(floor((r + d) / 2), xn);
 
-	ivec2 id = ivec2(x, z);
+	ivec2 id = ivec2(mod(x,256), mod(z,256));
 
 	vec4 derivatives = imageLoad(Derivatives, id);
 	vec2 slope = vec2(derivatives.x / (1 + derivatives.z),
