@@ -62,6 +62,7 @@ class ImGuiGui {
    void update(lve::TerrainMovementController &cameraControler,
                bool &caminata, size_t &pipeline, glm::vec3 coord,
                float frameTime, MyTextureData *img[],
-               SpectrumConfig params[], float &angle);
+               SpectrumConfig params[], float &angle,
+               float (&colors)[3][4]);
    void render(VkCommandBuffer command_buffer);
 };

@@ -721,6 +721,9 @@ void SecondApp::run() {
 
    float time = 0;
    float angle = 3.15;
+   float colors[3][4] = {{0.98823529412f, 0.97637058824f, 0.72941176471f, 0.5f},
+                         {0.0f, 0.11764705882f, 1.0f, 1.0f},
+                         {0.0f, 0.0f, 1.0f, 1.0f}};
    while (!lveWindow.shouldClose()) {
       glfwPollEvents();
 
@@ -755,7 +758,7 @@ void SecondApp::run() {
          // update
          myimgui.update(cameraController, caminata, pipeline,
                         viewerObject.transform.translation, frameTime,
-                        imgs, new_conf, angle);
+                        imgs, new_conf, angle, colors);
 
          time += frameTime;
          GlobalUbo ubo{};
@@ -766,6 +769,16 @@ void SecondApp::run() {
          ubo.time = time;
          ubo.lightPosition =
              glm::vec3{1.0, glm::sin(angle), glm::cos(angle)};
+			ubo.sunColor.r = colors[0][0];
+			ubo.sunColor.g = colors[0][1];
+			ubo.sunColor.b = colors[0][2];
+			ubo.sunColor.a = colors[0][3];
+			ubo.scatterColor.r = colors[1][0];
+			ubo.scatterColor.g = colors[1][1];
+			ubo.scatterColor.b = colors[1][2];
+			ubo.bubbleColor.r = colors[2][0];
+			ubo.bubbleColor.g = colors[2][1];
+			ubo.bubbleColor.b = colors[2][2];
 
          uboBuffers[frameIndex]->writeToBuffer(&ubo);
          uboBuffers[frameIndex]->flush();

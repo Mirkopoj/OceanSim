@@ -53,7 +53,7 @@ void ImGuiGui::new_frame() {
 void ImGuiGui::update(lve::TerrainMovementController &cameraControler,
                       bool &caminata, size_t &pipeline, glm::vec3 coord,
                       float frameTime, MyTextureData *img[],
-                      SpectrumConfig params[], float &angle) {
+                      SpectrumConfig params[], float &angle,float (&colors)[3][4]) {
    ImGui::Begin("Sensibilidad");
    ImGui::SliderFloat("Velocidad minima", &cameraControler.moveSpeedMin,
                       0.1f, cameraControler.moveSpeedMax);
@@ -127,6 +127,12 @@ void ImGuiGui::update(lve::TerrainMovementController &cameraControler,
    ImGui::InputFloat("peakEnhancement", &params[1].peakEnhancement);
    ImGui::InputFloat("shortWavesFade", &params[1].shortWavesFade);
    ImGui::End();
+
+   ImGui::Begin("Colors");
+	ImGui::ColorPicker4("Sun", colors[0]);
+	ImGui::ColorPicker3("Scatter", colors[1]);
+	ImGui::ColorPicker3("Bubbles", colors[2]);
+	ImGui::End();
 
 }
 

@@ -2,9 +2,8 @@
 
 const float PI = 3.1415926;
 
-layout(location = 0) in vec3 fragColor;
-layout(location = 1) in vec3 fragPosWorld;
-layout(location = 2) in vec3 fragNormalWorld;
+layout(location = 0) in vec3 fragPosWorld;
+layout(location = 1) in vec3 fragNormalWorld;
 
 layout(location = 0) out vec4 outColor;
 
@@ -12,12 +11,13 @@ layout(set = 0, binding = 0) uniform GloablUbo {
    mat4 projection;
    mat4 view;
    mat4 invView;
-   vec4 ambientLightColor;
+   vec4 sunColor;
+	vec4 scatterColor;
+	vec4 bubbleColor;
 	vec3 lightPosition;
 	uint cols;
 	float time;
-}
-ubo;
+} ubo;
 
 float DotClamped (vec3 a, vec3 b) {
 	return max(0.0, dot(a, b));
@@ -38,8 +38,7 @@ float Beckmann(float ndoth, float roughness) {
 }
 
 void main() {
-	vec3 bubbleColor = vec3(0, 0, 1);
-	float bubbleDensity = 0.2;
+	float bubbleDensity = ubo.sunColor.a;
 	float roughness = 0.1;
 	float foam_roughness_modifier = 1.0;
 	float height_modifier = 1.0;
@@ -49,8 +48,7 @@ void main() {
 	float environment_light_strength = 1.0;
 	float normal_depth_falloff = 1.0f;
 
-	vec3 lightColor = ubo.ambientLightColor.xyz;
-   vec3 ambientLight = ubo.ambientLightColor.xyz * ubo.ambientLightColor.w;
+	vec3 lightColor = ubo.sunColor.xyz;
 
    vec3 diffuseLight = lightColor * max(dot(normalize(fragNormalWorld), normalize(ubo.lightPosition)),0.0);
 	vec3 lightDir = normalize(ubo.lightPosition);
@@ -95,8 +93,8 @@ void main() {
 	float k3 = scatter_shadow_strength * NdotL;
 	float k4 = bubbleDensity;
 
-	vec3 scatteredLight = (k1 + k2) * fragColor * (1.0/(1 + lightMask));
-	scatteredLight += k3 * fragColor + k4 * bubbleColor;
+	vec3 scatteredLight = (k1 + k2) * ubo.scatterColor.rgb * (1.0/(1 + lightMask));
+	scatteredLight += k3 * ubo.scatterColor.rgb + k4 * ubo.bubbleColor.rgb;
 	scatteredLight *= lightColor;
 
 	vec3 out_color = (1 - F) * scatteredLight + specular;// + F * envReflection;

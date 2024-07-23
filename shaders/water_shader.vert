@@ -1,19 +1,19 @@
 #version 450
 
-layout(location = 0) out vec3 fragColor;
-layout(location = 1) out vec3 fragPosWorld;
-layout(location = 2) out vec3 fragNormalWorld;
+layout(location = 0) out vec3 fragPosWorld;
+layout(location = 1) out vec3 fragNormalWorld;
 
 layout(set = 0, binding = 0) uniform GloablUbo {
    mat4 projection;
    mat4 view;
    mat4 invView;
-   vec4 ambientLightColor;
+   vec4 sunColor;
+	vec4 scatterColor;
+	vec4 bubbleColor;
 	vec3 lightPosition;
 	uint cols;
 	float time;
-}
-ubo;
+} ubo;
 
 layout(set = 1, binding = 0, rgba16f) uniform readonly image2D Displacement_Turbulence;
 layout(set = 1, binding = 1, rgba16f) uniform readonly image2D Derivatives;
@@ -45,5 +45,4 @@ void main() {
 
    fragNormalWorld = normalize(normal);
    fragPosWorld = position;
-   fragColor = vec3(0, 0, 1);
 }
