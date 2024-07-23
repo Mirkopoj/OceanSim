@@ -15,7 +15,7 @@ void main() {
 	vec4 res = imageLoad(img, ivec2(gl_GlobalInvocationID.xy));
 
 	res *= 1.0 - 2.0 * ((gl_GlobalInvocationID.x + gl_GlobalInvocationID.y) % 2);
-	res /= ubo.Size * ubo.Size;
+	//res /= ubo.Size * ubo.Size;
 
 	imageStore(img, ivec2(gl_GlobalInvocationID.xy), res);
 }

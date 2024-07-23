@@ -9,14 +9,14 @@
 
 typedef struct {
    glm::float32 scale;
-   glm::float32 angle;
+   glm::float32 windSpeed;
+   glm::float32 windDirection;
+   glm::float32 fetch;
    glm::float32 spreadBlend;
    glm::float32 swell;
-   glm::float32 alpha;
-   glm::float32 peakOmega;
-   glm::float32 gamma;
+   glm::float32 peakEnhancement;
    glm::float32 shortWavesFade;
-} SpectrumParameters;
+} SpectrumConfig;
 
 struct MyTextureData {
    VkDescriptorSet
@@ -38,9 +38,6 @@ struct MyTextureData {
                  lve::LveDevice &device, VkFormat format);
    ~MyTextureData();
 };
-
-MyTextureData new_tex(size_t width, size_t height, size_t channels,
-                      lve::LveDevice &device);
 
 const char *vk_result_to_c_string(VkResult result);
 
@@ -65,6 +62,6 @@ class ImGuiGui {
    void update(lve::TerrainMovementController &cameraControler,
                bool &caminata, size_t &pipeline, glm::vec3 coord,
                float frameTime, MyTextureData *img[],
-               SpectrumParameters &params);
+               SpectrumConfig params[], float &angle);
    void render(VkCommandBuffer command_buffer);
 };

@@ -19,6 +19,7 @@ namespace lve {
 struct GlobalUbo {
    glm::mat4 projection{1.f};
    glm::mat4 view{1.f};
+   glm::mat4 inverseView{1.f};
    glm::vec4 ambienLightColor{0.9921568627f, 0.9843137255f, 0.8274509804f,
                               .02f};
    glm::vec3 lightPosition{1.5f, -3.5f, -2.5f};

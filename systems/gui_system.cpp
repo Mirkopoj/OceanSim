@@ -53,7 +53,7 @@ void ImGuiGui::new_frame() {
 void ImGuiGui::update(lve::TerrainMovementController &cameraControler,
                       bool &caminata, size_t &pipeline, glm::vec3 coord,
                       float frameTime, MyTextureData *img[],
-                      SpectrumParameters &params) {
+                      SpectrumConfig params[], float &angle) {
    ImGui::Begin("Sensibilidad");
    ImGui::SliderFloat("Velocidad minima", &cameraControler.moveSpeedMin,
                       0.1f, cameraControler.moveSpeedMax);
@@ -78,6 +78,7 @@ void ImGuiGui::update(lve::TerrainMovementController &cameraControler,
    ImGui::RadioButton("Normal", &pipeline_i, 0);
    ImGui::SameLine();
    ImGui::RadioButton("WireFrame", &pipeline_i, 1);
+   ImGui::SliderFloat("Sun angle", &angle, 3.14f, 6.3f);
    ImGui::End();
    pipeline = pipeline_i;
 
@@ -103,15 +104,28 @@ void ImGuiGui::update(lve::TerrainMovementController &cameraControler,
                 ImVec2(img[5]->Width, img[5]->Height));
    ImGui::End();
 
-   ImGui::Begin("Params");
-   ImGui::SliderFloat("scale", &params.scale, 0.f, 500.f);
-   ImGui::SliderFloat("angle", &params.angle, 0.f, 6.3f);
-   ImGui::SliderFloat("spreadBlend", &params.spreadBlend, 0.f, 1.f);
-   ImGui::SliderFloat("swell", &params.swell, 0.f, 500.f);
-   ImGui::SliderFloat("alpha", &params.alpha, 0.f, 500.f);
-   ImGui::SliderFloat("peakOmega", &params.peakOmega, 0.f, 15.f);
-   ImGui::SliderFloat("gamma", &params.gamma, 0.f, 1.f);
-   ImGui::SliderFloat("shortWavesFade", &params.shortWavesFade, 0.f, 40.f);
+   ImGui::Begin("Params waves");
+   ImGui::SliderFloat("scale", &params[0].scale, 0.f, 1.f);
+   ImGui::InputFloat("windSpeed", &params[0].windSpeed);
+   ImGui::SliderAngle("windDirection", &params[0].windDirection, -180.f,
+                      180.f);
+   ImGui::InputFloat("fetch", &params[0].fetch);
+   ImGui::SliderFloat("spreadBlend", &params[0].spreadBlend, 0.f, 1.f);
+   ImGui::SliderFloat("swell", &params[0].swell, 0.f, 1.f);
+   ImGui::InputFloat("peakEnhancement", &params[0].peakEnhancement);
+   ImGui::InputFloat("shortWavesFade", &params[0].shortWavesFade);
+   ImGui::End();
+
+   ImGui::Begin("Params swell");
+   ImGui::SliderFloat("scale", &params[1].scale, 0.f, 1.f);
+   ImGui::InputFloat("windSpeed", &params[1].windSpeed);
+   ImGui::SliderAngle("windDirection", &params[1].windDirection, -180.f,
+                      180.f);
+   ImGui::InputFloat("fetch", &params[1].fetch);
+   ImGui::SliderFloat("spreadBlend", &params[1].spreadBlend, 0.f, 1.f);
+   ImGui::SliderFloat("swell", &params[1].swell, 0.f, 1.f);
+   ImGui::InputFloat("peakEnhancement", &params[1].peakEnhancement);
+   ImGui::InputFloat("shortWavesFade", &params[1].shortWavesFade);
    ImGui::End();
 
 }

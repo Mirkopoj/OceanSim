@@ -12,9 +12,11 @@
 #include <cstdlib>
 #include <cstring>
 #include <glm/common.hpp>
+#include <glm/ext/scalar_constants.hpp>
+#include <glm/ext/vector_float3.hpp>
 #include <glm/fwd.hpp>
 #include <glm/geometric.hpp>
-#include <iostream>
+#include <glm/trigonometric.hpp>
 #include <memory>
 #include <vector>
 
@@ -42,6 +44,14 @@ SecondApp::SecondApp(size_t n) : N(n) {
 }
 
 SecondApp::~SecondApp() {
+}
+
+float jonswap_alpha(float g, float fetch, float windSpeed) {
+   return 0.076f * std::pow(g * fetch / windSpeed / windSpeed, -0.22f);
+}
+
+float jonswap_peak_features(float g, float fetch, float windSpeed) {
+   return 22 * std::pow(windSpeed * fetch / g / g, -0.33f);
 }
 
 void SecondApp::run() {
@@ -88,7 +98,6 @@ void SecondApp::run() {
    size_t pipeline = 0;
 
    size_t logN = std::log2(N);
-   std::cout << "log2(N) = " << logN << "\n";
 
    MyTextureData buterfly(logN, N, 4, lveDevice,
                           VK_FORMAT_R16G16B16A16_SFLOAT);
@@ -181,6 +190,17 @@ void SecondApp::run() {
        .imageLayout = VK_IMAGE_LAYOUT_GENERAL,
    };
 
+   typedef struct {
+      glm::float32 scale;
+      glm::float32 angle;
+      glm::float32 spreadBlend;
+      glm::float32 swell;
+      glm::float32 alpha;
+      glm::float32 peakOmega;
+      glm::float32 gamma;
+      glm::float32 shortWavesFade;
+   } SpectrumParameters;
+
    VkDescriptorSet init_spec_desc_set = {};
    std::unique_ptr<LveBuffer> specBuf =
        std::make_unique<LveBuffer>(lveDevice, sizeof(SpectrumParameters),
@@ -195,24 +215,54 @@ void SecondApp::run() {
        .writeBuffer(3, &bufferInfo)
        .build(init_spec_desc_set);
 
-   SpectrumParameters spec_params[2];
-   spec_params[0].scale = 500.0;
-   spec_params[0].angle = 0.502;
-   spec_params[0].spreadBlend = 1.0;
-   spec_params[0].swell = 0.198;
-   spec_params[0].alpha = 100000.0;
-   spec_params[0].peakOmega = 3.3;
-   spec_params[0].gamma = 3.3;
-   spec_params[0].shortWavesFade = 0.01;
+   SpectrumConfig spec_conf[2];
+   spec_conf[0].scale = 1;
+   spec_conf[0].windSpeed = 15;
+   spec_conf[0].windDirection = -0.5;
+   spec_conf[0].fetch = 100000;
+   spec_conf[0].spreadBlend = 1;
+   spec_conf[0].swell = 0.198;
+   spec_conf[0].peakEnhancement = 3.3;
+   spec_conf[0].shortWavesFade = 0.01;
 
-   spec_params[1].scale = 1.0;
-   spec_params[1].angle = 0.0;
-   spec_params[1].spreadBlend = 1.0;
-   spec_params[1].swell = 1.0;
-   spec_params[1].alpha = 300000.0;
-   spec_params[1].peakOmega = 3.3;
-   spec_params[1].gamma = 3.3;
-   spec_params[1].shortWavesFade = 0.01;
+   spec_conf[1].scale = 0;
+   spec_conf[1].windSpeed = 1;
+   spec_conf[1].windDirection = 0;
+   spec_conf[1].fetch = 300000;
+   spec_conf[1].spreadBlend = 1;
+   spec_conf[1].swell = 1;
+   spec_conf[1].peakEnhancement = 3.3;
+   spec_conf[1].shortWavesFade = 0.01;
+   SpectrumConfig new_conf[2];
+   new_conf[0] = spec_conf[0];
+   new_conf[1] = spec_conf[1];
+
+   SpectrumParameters spec_params[2];
+   spec_params[0].scale = spec_conf[0].scale;
+   spec_params[0].angle = spec_conf[0].windDirection;
+   spec_params[0].spreadBlend = spec_conf[0].spreadBlend;
+   spec_params[0].swell = spec_conf[0].swell;
+   spec_params[0].alpha =
+       jonswap_alpha(comp_buf.GravityAcceleration, spec_conf[0].fetch,
+                     spec_conf[0].windSpeed);
+   spec_params[0].peakOmega =
+       jonswap_peak_features(comp_buf.GravityAcceleration,
+                             spec_conf[0].fetch, spec_conf[0].windSpeed);
+   spec_params[0].gamma = spec_conf[0].peakEnhancement;
+   spec_params[0].shortWavesFade = spec_conf[0].shortWavesFade;
+
+   spec_params[1].scale = spec_conf[1].scale;
+   spec_params[1].angle = spec_conf[1].windDirection;
+   spec_params[1].spreadBlend = spec_conf[1].spreadBlend;
+   spec_params[1].swell = spec_conf[1].swell;
+   spec_params[1].alpha =
+       jonswap_alpha(comp_buf.GravityAcceleration, spec_conf[1].fetch,
+                     spec_conf[1].windSpeed);
+   spec_params[1].peakOmega =
+       jonswap_peak_features(comp_buf.GravityAcceleration,
+                             spec_conf[1].fetch, spec_conf[1].windSpeed);
+   spec_params[1].gamma = spec_conf[1].peakEnhancement;
+   spec_params[1].shortWavesFade = spec_conf[1].shortWavesFade;
    specBuf->map();
    specBuf->writeToBuffer(spec_params);
    specBuf->unmap();
@@ -670,6 +720,7 @@ void SecondApp::run() {
    vkEndCommandBuffer(computeCommandBuffer);
 
    float time = 0;
+   float angle = 3.15;
    while (!lveWindow.shouldClose()) {
       glfwPollEvents();
 
@@ -702,17 +753,22 @@ void SecondApp::run() {
          myimgui.new_frame();
 
          // update
+         myimgui.update(cameraController, caminata, pipeline,
+                        viewerObject.transform.translation, frameTime,
+                        imgs, new_conf, angle);
+
          time += frameTime;
          GlobalUbo ubo{};
          ubo.projection = camera.getProjection();
          ubo.view = camera.getView();
+         ubo.inverseView = camera.getInverseView();
          ubo.cols = xn;
          ubo.time = time;
+         ubo.lightPosition =
+             glm::vec3{1.0, glm::sin(angle), glm::cos(angle)};
+
          uboBuffers[frameIndex]->writeToBuffer(&ubo);
          uboBuffers[frameIndex]->flush();
-         myimgui.update(cameraController, caminata, pipeline,
-                        viewerObject.transform.translation, frameTime,
-                        imgs, spec_params[0]);
 
          // render system
          lveRenderer.beginSwapChainRenderPass(commandBuffer);
@@ -741,16 +797,49 @@ void SecondApp::run() {
                        VK_NULL_HANDLE);
          vkQueueWaitIdle(lveDevice.computeQueue());
 
-         if (spec_params[0].scale != spec_params[1].scale ||
-             spec_params[0].angle != spec_params[1].angle ||
-             spec_params[0].spreadBlend != spec_params[1].spreadBlend ||
-             spec_params[0].swell != spec_params[1].swell ||
-             spec_params[0].alpha != spec_params[1].alpha ||
-             spec_params[0].peakOmega != spec_params[1].peakOmega ||
-             spec_params[0].gamma != spec_params[1].gamma ||
-             spec_params[0].shortWavesFade !=
-                 spec_params[1].shortWavesFade) {
-            spec_params[1] = spec_params[0];
+         if (new_conf[0].scale != spec_conf[0].scale ||
+             new_conf[0].windSpeed != spec_conf[0].windSpeed ||
+             new_conf[0].windDirection != spec_conf[0].windDirection ||
+             new_conf[0].fetch != spec_conf[0].fetch ||
+             new_conf[0].spreadBlend != spec_conf[0].spreadBlend ||
+             new_conf[0].swell != spec_conf[0].swell ||
+             new_conf[0].peakEnhancement != spec_conf[0].peakEnhancement ||
+             new_conf[0].shortWavesFade != spec_conf[0].shortWavesFade ||
+             new_conf[1].scale != spec_conf[1].scale ||
+             new_conf[1].windSpeed != spec_conf[1].windSpeed ||
+             new_conf[1].windDirection != spec_conf[1].windDirection ||
+             new_conf[1].fetch != spec_conf[1].fetch ||
+             new_conf[1].spreadBlend != spec_conf[1].spreadBlend ||
+             new_conf[1].swell != spec_conf[1].swell ||
+             new_conf[1].peakEnhancement != spec_conf[1].peakEnhancement ||
+             new_conf[1].shortWavesFade != spec_conf[1].shortWavesFade) {
+            spec_conf[0] = new_conf[0];
+            spec_conf[1] = new_conf[1];
+            spec_params[0].scale = spec_conf[0].scale;
+            spec_params[0].angle = spec_conf[0].windDirection;
+            spec_params[0].spreadBlend = spec_conf[0].spreadBlend;
+            spec_params[0].swell = spec_conf[0].swell;
+            spec_params[0].alpha =
+                jonswap_alpha(comp_buf.GravityAcceleration,
+                              spec_conf[0].fetch, spec_conf[0].windSpeed);
+            spec_params[0].peakOmega = jonswap_peak_features(
+                comp_buf.GravityAcceleration, spec_conf[0].fetch,
+                spec_conf[0].windSpeed);
+            spec_params[0].gamma = spec_conf[0].peakEnhancement;
+            spec_params[0].shortWavesFade = spec_conf[0].shortWavesFade;
+
+            spec_params[1].scale = spec_conf[1].scale;
+            spec_params[1].angle = spec_conf[1].windDirection;
+            spec_params[1].spreadBlend = spec_conf[1].spreadBlend;
+            spec_params[1].swell = spec_conf[1].swell;
+            spec_params[1].alpha =
+                jonswap_alpha(comp_buf.GravityAcceleration,
+                              spec_conf[1].fetch, spec_conf[1].windSpeed);
+            spec_params[1].peakOmega = jonswap_peak_features(
+                comp_buf.GravityAcceleration, spec_conf[1].fetch,
+                spec_conf[1].windSpeed);
+            spec_params[1].gamma = spec_conf[1].peakEnhancement;
+            spec_params[1].shortWavesFade = spec_conf[1].shortWavesFade;
             specBuf->map();
             specBuf->writeToBuffer(spec_params);
             specBuf->unmap();
