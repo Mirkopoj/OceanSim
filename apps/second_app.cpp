@@ -760,6 +760,8 @@ void SecondApp::run() {
        globalSetLayout->getDescriptorSetLayout(),
        "obj/shaders/water_shader.vert.spv",
        "obj/shaders/water_shader.frag.spv",
+       "obj/shaders/water_shader.tesc.spv",
+       "obj/shaders/water_shader.tese.spv",
        disp_desc_set,
        disp_desc_set_lay->getDescriptorSetLayout()};
 
@@ -1605,8 +1607,8 @@ void SecondApp::run() {
 }
 
 void SecondApp::loadGameObjects() {
-   yn = N * 5;
-   xn = N * 5;
+   yn = N;
+   xn = N;
    for (size_t x = 0; x < xn; ++x) {
       std::vector<glm::float32> row;
       for (size_t y = 0; y < yn; ++y) {
@@ -1619,8 +1621,8 @@ void SecondApp::loadGameObjects() {
 
 void SecondApp::fixViewer(LveGameObject& viewerObject,
                           float cameraHeight) {
-   viewerObject.transform.translation.x = static_cast<float>(xn - 1) / 2.f;
-   viewerObject.transform.translation.z = static_cast<float>(yn - 1) / 2.f;
+   viewerObject.transform.translation.x = 5 * static_cast<float>(xn - 1) / 2.f;
+   viewerObject.transform.translation.z = 5 * static_cast<float>(yn - 1) / 2.f;
    uint32_t x = glm::clamp(
        xn - (uint32_t)roundf(viewerObject.transform.translation.x),
        (uint32_t)0, xn - 1);

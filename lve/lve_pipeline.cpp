@@ -16,14 +16,19 @@ namespace lve {
 LvePipeline::LvePipeline(LveDevice& device,
                          const std::string& vertFilepath,
                          const std::string& fragFilepath,
+                         const std::string& tesCFilepath,
+                         const std::string& tesEFilepath,
                          const PipelineConfigInfo& configInfo)
     : lveDevice{device} {
-   createGraphicsPipeline(vertFilepath, fragFilepath, configInfo);
+   createGraphicsPipeline(vertFilepath, fragFilepath, tesCFilepath,
+                          tesEFilepath, configInfo);
 }
 
 LvePipeline::~LvePipeline() {
    vkDestroyShaderModule(lveDevice.device(), vertShaderModule, nullptr);
    vkDestroyShaderModule(lveDevice.device(), fragShaderModule, nullptr);
+   vkDestroyShaderModule(lveDevice.device(), tesCShaderModule, nullptr);
+   vkDestroyShaderModule(lveDevice.device(), tesEShaderModule, nullptr);
    vkDestroyPipeline(lveDevice.device(), graphicsPipeline, nullptr);
 }
 
@@ -47,6 +52,7 @@ std::vector<char> LvePipeline::readFile(const std::string& filepath) {
 
 void LvePipeline::createGraphicsPipeline(
     const std::string& vertFilepath, const std::string& fragFilepath,
+    const std::string& tesCFilepath, const std::string& tesEFilepath,
     const PipelineConfigInfo& configInfo) {
    assert(configInfo.pipelineLayout != VK_NULL_HANDLE &&
           "Cannot create graphics pipeline:: no pipelineLayout provided "
@@ -57,11 +63,15 @@ void LvePipeline::createGraphicsPipeline(
 
    auto vertCode = readFile(vertFilepath);
    auto fragCode = readFile(fragFilepath);
+   auto tesCCode = readFile(tesCFilepath);
+   auto tesECode = readFile(tesEFilepath);
 
    createShaderModule(vertCode, &vertShaderModule);
    createShaderModule(fragCode, &fragShaderModule);
+   createShaderModule(tesCCode, &tesCShaderModule);
+   createShaderModule(tesECode, &tesEShaderModule);
 
-   VkPipelineShaderStageCreateInfo shaderStages[2];
+   VkPipelineShaderStageCreateInfo shaderStages[4];
    shaderStages[0].sType =
        VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
    shaderStages[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
@@ -80,6 +90,24 @@ void LvePipeline::createGraphicsPipeline(
    shaderStages[1].pNext = nullptr;
    shaderStages[1].pSpecializationInfo = nullptr;
 
+   shaderStages[2].sType =
+       VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+   shaderStages[2].stage = VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT;
+   shaderStages[2].module = tesCShaderModule;
+   shaderStages[2].pName = "main";
+   shaderStages[2].flags = 0;
+   shaderStages[2].pNext = nullptr;
+   shaderStages[2].pSpecializationInfo = nullptr;
+
+   shaderStages[3].sType =
+       VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+   shaderStages[3].stage = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
+   shaderStages[3].module = tesEShaderModule;
+   shaderStages[3].pName = "main";
+   shaderStages[3].flags = 0;
+   shaderStages[3].pNext = nullptr;
+   shaderStages[3].pSpecializationInfo = nullptr;
+
    auto& bindingDescriptions = configInfo.bindingDescriptions;
    auto& attributeDescriptions = configInfo.attributeDescriptions;
    VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
@@ -95,7 +123,7 @@ void LvePipeline::createGraphicsPipeline(
 
    VkGraphicsPipelineCreateInfo pipelineInfo{};
    pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-   pipelineInfo.stageCount = 2;
+   pipelineInfo.stageCount = 4;
    pipelineInfo.pStages = shaderStages;
    pipelineInfo.pVertexInputState = &vertexInputInfo;
    pipelineInfo.pInputAssemblyState = &configInfo.inputAssemblyInfo;
@@ -105,6 +133,7 @@ void LvePipeline::createGraphicsPipeline(
    pipelineInfo.pColorBlendState = &configInfo.colorBlendInfo;
    pipelineInfo.pDepthStencilState = &configInfo.depthStencilInfo;
    pipelineInfo.pDynamicState = &configInfo.dynamicStateInfo;
+   pipelineInfo.pTessellationState = &configInfo.tessellationStateInfo;
 
    pipelineInfo.layout = configInfo.pipelineLayout;
    pipelineInfo.renderPass = configInfo.renderPass;
@@ -159,7 +188,8 @@ void LvePipeline::defaultPipelineConfigInfo(
    configInfo.rasterizationInfo.rasterizerDiscardEnable = VK_FALSE;
    configInfo.rasterizationInfo.polygonMode = VK_POLYGON_MODE_FILL;
    configInfo.rasterizationInfo.lineWidth = 1.0f;
-   configInfo.rasterizationInfo.cullMode = VK_CULL_MODE_BACK_BIT;
+   //configInfo.rasterizationInfo.cullMode = VK_CULL_MODE_BACK_BIT;
+   configInfo.rasterizationInfo.cullMode = VK_CULL_MODE_NONE;
    configInfo.rasterizationInfo.frontFace = VK_FRONT_FACE_CLOCKWISE;
    configInfo.rasterizationInfo.depthBiasEnable = VK_FALSE;
    configInfo.rasterizationInfo.depthBiasConstantFactor = 0.0f;
@@ -228,6 +258,12 @@ void LvePipeline::defaultPipelineConfigInfo(
        LveModel::Vertex::getBindingDescriptions();
    configInfo.attributeDescriptions =
        LveModel::Vertex::getAttributeDescriptions();
+
+   configInfo.tessellationStateInfo.sType =
+       VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO;
+   configInfo.tessellationStateInfo.flags = 0;
+   configInfo.tessellationStateInfo.pNext = nullptr;
+   configInfo.tessellationStateInfo.patchControlPoints = 3;
 }
 
 void LvePipeline::enableAlphaBlending(PipelineConfigInfo& configInfo) {

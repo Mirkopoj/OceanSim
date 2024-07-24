@@ -21,6 +21,8 @@ class TerrainRenderSystem {
                        VkDescriptorSetLayout globalSetLayout,
                        const std::string &vertFilepath,
                        const std::string &fragFilepath,
+                       const std::string &tesCFilepath,
+                       const std::string &tesEFilepath,
                        VkDescriptorSet dispDesc,
                        VkDescriptorSetLayout dispLay);
    ~TerrainRenderSystem();
@@ -36,6 +38,8 @@ class TerrainRenderSystem {
    void createPipeline(VkRenderPass renderPass,
                        const std::string &vertFilepath,
                        const std::string &fragFilepath,
+                       const std::string &tesCFilepath,
+                       const std::string &tesEFilepath,
                        PipeLineType pipeline);
 
    LveDevice &lveDevice;

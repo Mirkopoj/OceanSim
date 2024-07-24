@@ -16,7 +16,7 @@ namespace lve {
 
 LveTerrain::LveTerrain(LveDevice &device, uint32_t x, uint32_t y)
     : lveDevice{device} {
-   vertexCount = y + (x - 1) * (2 * y - 2);
+   vertexCount = ((y + (x - 1) * (2 * y - 2)) - 2) * 3;
 }
 
 LveTerrain::~LveTerrain() {

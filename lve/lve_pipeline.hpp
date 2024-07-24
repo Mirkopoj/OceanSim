@@ -26,6 +26,7 @@ struct PipelineConfigInfo {
    VkPipelineDepthStencilStateCreateInfo depthStencilInfo;
    std::vector<VkDynamicState> dynamicStateEnables;
    VkPipelineDynamicStateCreateInfo dynamicStateInfo;
+   VkPipelineTessellationStateCreateInfo tessellationStateInfo;
    VkPipelineLayout pipelineLayout = nullptr;
    VkRenderPass renderPass = nullptr;
    uint32_t subpass = 0;
@@ -35,6 +36,8 @@ class LvePipeline {
   public:
    LvePipeline(LveDevice &device, const std::string &vertFilepath,
                const std::string &fragFilepath,
+               const std::string &tesCFilepath,
+               const std::string &tesEFilepath,
                const PipelineConfigInfo &configInfo);
 
    ~LvePipeline();
@@ -51,6 +54,8 @@ class LvePipeline {
 
    void createGraphicsPipeline(const std::string &vertFilepath,
                                const std::string &fragFilepath,
+                               const std::string &tesCFilepath,
+                               const std::string &tesEFilepath,
                                const PipelineConfigInfo &configInfo);
 
    void createShaderModule(const std::vector<char> &code,
@@ -60,5 +65,7 @@ class LvePipeline {
    VkPipeline graphicsPipeline;
    VkShaderModule vertShaderModule;
    VkShaderModule fragShaderModule;
+   VkShaderModule tesCShaderModule;
+   VkShaderModule tesEShaderModule;
 };
 }  // namespace lve

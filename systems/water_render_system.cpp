@@ -18,14 +18,15 @@ namespace lve {
 TerrainRenderSystem::TerrainRenderSystem(
     LveDevice &device, VkRenderPass renderPass,
     VkDescriptorSetLayout globalSetLayout, const std::string &vertFilepath,
-    const std::string &fragFilepath, VkDescriptorSet dispDesc,
+    const std::string &fragFilepath, const std::string &tesCFilepath,
+    const std::string &tesEFilepath, VkDescriptorSet dispDesc,
     VkDescriptorSetLayout dispLay)
     : lveDevice{device}, displacementDesciptor{dispDesc} {
    createPipelineLayout(globalSetLayout, dispLay);
-   createPipeline(renderPass, vertFilepath, fragFilepath,
-                  PipeLineType::Normal);
-   createPipeline(renderPass, vertFilepath, fragFilepath,
-                  PipeLineType::WireFrame);
+   createPipeline(renderPass, vertFilepath, fragFilepath, tesCFilepath,
+                  tesEFilepath, PipeLineType::Normal);
+   createPipeline(renderPass, vertFilepath, fragFilepath, tesCFilepath,
+                  tesEFilepath, PipeLineType::WireFrame);
 }
 
 TerrainRenderSystem::~TerrainRenderSystem() {
@@ -35,7 +36,6 @@ TerrainRenderSystem::~TerrainRenderSystem() {
 void TerrainRenderSystem::createPipelineLayout(
     VkDescriptorSetLayout globalSetLayout,
     VkDescriptorSetLayout dispSetLayout) {
-
    std::vector<VkDescriptorSetLayout> descriptoSetLayouts{globalSetLayout,
                                                           dispSetLayout};
 
@@ -55,6 +55,8 @@ void TerrainRenderSystem::createPipelineLayout(
 void TerrainRenderSystem::createPipeline(VkRenderPass renderPass,
                                          const std::string &vertFilepath,
                                          const std::string &fragFilepath,
+                                         const std::string &tesCFilepath,
+                                         const std::string &tesEFilepath,
                                          PipeLineType pipeline) {
    assert(pipelineLayout != nullptr &&
           "Cannot create pipeline before pipeline layout");
@@ -62,7 +64,7 @@ void TerrainRenderSystem::createPipeline(VkRenderPass renderPass,
    PipelineConfigInfo pipelineConfig{};
    LvePipeline::defaultPipelineConfigInfo(pipelineConfig);
    pipelineConfig.inputAssemblyInfo.topology =
-       VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
+       VK_PRIMITIVE_TOPOLOGY_PATCH_LIST;
 
    if (pipeline == PipeLineType::WireFrame) {
       pipelineConfig.rasterizationInfo.polygonMode = VK_POLYGON_MODE_LINE;
@@ -78,6 +80,7 @@ void TerrainRenderSystem::createPipeline(VkRenderPass renderPass,
    pipelineConfig.pipelineLayout = pipelineLayout;
    lvePipeline[static_cast<size_t>(pipeline)] =
        std::make_unique<LvePipeline>(lveDevice, vertFilepath, fragFilepath,
+                                     tesCFilepath, tesEFilepath,
                                      pipelineConfig);
 }
 

@@ -12,11 +12,15 @@ fragSources = $(shell find ./shaders -type f -name "*.frag")
 fragObjFiles = $(patsubst %.frag, obj/%.frag.spv, $(fragSources))
 compSources = $(shell find ./shaders -type f -name "*.comp")
 compObjFiles = $(patsubst %.comp, obj/%.comp.spv, $(compSources))
+tescSources = $(shell find ./shaders -type f -name "*.tesc")
+tescObjFiles = $(patsubst %.tesc, obj/%.tesc.spv, $(tescSources))
+teseSources = $(shell find ./shaders -type f -name "*.tese")
+teseObjFiles = $(patsubst %.tese, obj/%.tese.spv, $(teseSources))
 SRCS = $(shell find -type f -name "*.cpp" -not -path "*/mains/*")
 OBJS = $(patsubst ./%.cpp, obj/%.o, $(SRCS))
 MAINOUTS = FirstApp SecondApp
 
-$(MAINOUTS): $(OBJS) $(vertObjFiles) $(fragObjFiles) $(compObjFiles)
+$(MAINOUTS): $(OBJS) $(vertObjFiles) $(fragObjFiles) $(compObjFiles) $(tescObjFiles) $(teseObjFiles)
 	@mkdir -p bin
 	@mkdir -p obj/mains
 	g++ $(CFLAGS) -c mains/$@.cpp -o obj/mains/$@.o
