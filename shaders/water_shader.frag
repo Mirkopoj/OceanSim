@@ -3,7 +3,6 @@
 const float PI = 3.1415926;
 
 layout(location = 0) in vec3 fragPosWorld;
-layout(location = 1) in vec3 fragNormalWorld;
 
 layout(location = 0) out vec4 outColor;
 
@@ -18,6 +17,32 @@ layout(set = 0, binding = 0) uniform GloablUbo {
 	uint cols;
 	float time;
 } ubo;
+
+struct CompUboIner
+{
+	float LengthScale;
+	float CutoffHigh;
+	float CutoffLow;
+	float GravityAcceleration;
+	float Depth;
+	uint Size;
+};
+
+layout(set = 1, binding = 0) buffer CompUbo {
+	CompUboIner data[4];
+} comp_ubo;
+
+layout(set = 1, binding = 1) uniform sampler2D Displacement_Turbulence0;
+layout(set = 1, binding = 2) uniform sampler2D Derivatives0;
+
+layout(set = 1, binding = 3) uniform sampler2D Displacement_Turbulence1;
+layout(set = 1, binding = 4) uniform sampler2D Derivatives1;
+
+layout(set = 1, binding = 5) uniform sampler2D Displacement_Turbulence2;
+layout(set = 1, binding = 6) uniform sampler2D Derivatives2;
+
+layout(set = 1, binding = 7) uniform sampler2D Displacement_Turbulence3;
+layout(set = 1, binding = 8) uniform sampler2D Derivatives3;
 
 float DotClamped (vec3 a, vec3 b) {
 	return max(0.0, dot(a, b));
@@ -47,10 +72,23 @@ void main() {
 	float scatter_shadow_strength = 1.0;
 	float environment_light_strength = 1.0;
 	float normal_depth_falloff = 1.0f;
+	float foam_depth_falloff = 1.0f;
+
+	vec2 id = fragPosWorld.xz;
+
+	vec4 derivatives = 
+		   texture(Derivatives0, id / comp_ubo.data[0].LengthScale)
+		 + texture(Derivatives1, id / comp_ubo.data[1].LengthScale)
+		 + texture(Derivatives2, id / comp_ubo.data[2].LengthScale)
+		 + texture(Derivatives3, id / comp_ubo.data[3].LengthScale);
+
+	vec2 slope = vec2(derivatives.x / (1 + derivatives.z),
+                derivatives.y / (1 + derivatives.w));
+   vec3 normal = normalize(vec3(-slope.x, -1, -slope.y));
 
 	vec3 lightColor = ubo.sunColor.xyz;
 
-   vec3 diffuseLight = lightColor * max(dot(normalize(fragNormalWorld), normalize(ubo.lightPosition)),0.0);
+   vec3 diffuseLight = lightColor * max(dot(normal, normalize(ubo.lightPosition)),0.0);
 	vec3 lightDir = normalize(ubo.lightPosition);
    vec3 cameraPosWorld = ubo.invView[3].xyz;
    vec3 viewDir = normalize(cameraPosWorld - fragPosWorld);
@@ -58,12 +96,14 @@ void main() {
 	float depth = gl_FragCoord.z;
 
 	vec3 macroNormal = vec3(0, -1, 0);
-	vec3 mesoNormal = fragNormalWorld;
-	mesoNormal = normalize(mix(vec3(0, 1, 0), mesoNormal, pow(clamp(depth, 0.0, 1.0), normal_depth_falloff)));
+	vec3 mesoNormal = normal;
+	mesoNormal = normalize(mix(vec3(0, 1, 0), mesoNormal, pow(clamp(depth, 0.0, 1.0), foam_depth_falloff)));
 
 	float NdotL = DotClamped(mesoNormal, lightDir);
 
-	float a = roughness ;//+ foam * foam_roughness_modifier;
+	//float foam = mix(0.0f, clamp(imageLoad(Displacement_Turbulence, ivec2(mod(fragPosWorld.xz,256))).a, 0.0, 1.0), pow(depth, foam_depth_falloff));
+
+	float a = roughness;// + foam * foam_roughness_modifier;
 	float ndoth = max(0.0001f, dot(mesoNormal, halfwayDir));
 
 	float viewMask = SmithMaskingBeckmann(halfwayDir, viewDir, a);
@@ -99,5 +139,6 @@ void main() {
 
 	vec3 out_color = (1 - F) * scatteredLight + specular;// + F * envReflection;
 	out_color = max(vec3(0, 0, 0), out_color);
+	//out_color = mix(out_color, vec3(1, 1, 1), clamp(foam, 0.0, 1.0));
    outColor = vec4(out_color, 1.0);
 }

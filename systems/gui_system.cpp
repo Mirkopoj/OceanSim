@@ -88,20 +88,53 @@ void ImGuiGui::update(lve::TerrainMovementController &cameraControler,
    ImGui::End();
 
    ImGui::Begin("OnParamChange");
-   ImGui::Image((ImTextureID)img[2]->DS,
-                ImVec2(img[2]->Width, img[2]->Height));
    ImGui::Image((ImTextureID)img[1]->DS,
                 ImVec2(img[1]->Width, img[1]->Height));
+   ImGui::Image((ImTextureID)img[2]->DS,
+                ImVec2(img[2]->Width, img[2]->Height));
    ImGui::SameLine();
+   ImGui::Image((ImTextureID)img[6]->DS,
+                ImVec2(img[6]->Width, img[6]->Height));
    ImGui::Image((ImTextureID)img[3]->DS,
                 ImVec2(img[3]->Width, img[3]->Height));
+   ImGui::SameLine();
+   ImGui::Image((ImTextureID)img[7]->DS,
+                ImVec2(img[7]->Width, img[7]->Height));
+   ImGui::Image((ImTextureID)img[4]->DS,
+                ImVec2(img[4]->Width, img[4]->Height));
+   ImGui::SameLine();
+   ImGui::Image((ImTextureID)img[8]->DS,
+                ImVec2(img[8]->Width, img[8]->Height));
+   ImGui::Image((ImTextureID)img[5]->DS,
+                ImVec2(img[5]->Width, img[5]->Height));
+   ImGui::SameLine();
+   ImGui::Image((ImTextureID)img[9]->DS,
+                ImVec2(img[9]->Width, img[9]->Height));
    ImGui::End();
 
    ImGui::Begin("EveryFrame");
-   ImGui::Image((ImTextureID)img[4]->DS,
-                ImVec2(img[4]->Width, img[4]->Height));
-   ImGui::Image((ImTextureID)img[5]->DS,
-                ImVec2(img[5]->Width, img[5]->Height));
+   ImGui::Image((ImTextureID)img[10]->DS,
+                ImVec2(img[10]->Width, img[10]->Height));
+   ImGui::SameLine();
+   ImGui::Image((ImTextureID)img[11]->DS,
+                ImVec2(img[11]->Width, img[11]->Height));
+   ImGui::SameLine();
+   ImGui::Image((ImTextureID)img[12]->DS,
+                ImVec2(img[12]->Width, img[12]->Height));
+   ImGui::SameLine();
+   ImGui::Image((ImTextureID)img[13]->DS,
+                ImVec2(img[13]->Width, img[13]->Height));
+   ImGui::Image((ImTextureID)img[14]->DS,
+                ImVec2(img[14]->Width, img[14]->Height));
+   ImGui::SameLine();
+   ImGui::Image((ImTextureID)img[15]->DS,
+                ImVec2(img[15]->Width, img[15]->Height));
+   ImGui::SameLine();
+   ImGui::Image((ImTextureID)img[16]->DS,
+                ImVec2(img[16]->Width, img[16]->Height));
+   ImGui::SameLine();
+   ImGui::Image((ImTextureID)img[17]->DS,
+                ImVec2(img[17]->Width, img[17]->Height));
    ImGui::End();
 
    ImGui::Begin("Params waves");

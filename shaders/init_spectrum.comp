@@ -23,12 +23,12 @@ layout(binding = 2) buffer readonly SpectrumParams {
 } Spectrums;
 
 layout(binding = 3) buffer readonly UBO {
-	int Size;
 	float LengthScale;
 	float CutoffHigh;
 	float CutoffLow;
 	float GravityAcceleration;
 	float Depth;
+	uint Size;
 } ubo;
 
 float Frequency(float k, float g, float depth)
@@ -145,8 +145,8 @@ float hash(uint n) {
 void main() {
 	ivec2 id = ivec2(gl_GlobalInvocationID.xy);
 	float deltaK = 2 * PI / ubo.LengthScale;
-	int nx = id.x - ubo.Size / 2;
-	int nz = id.y - ubo.Size / 2;
+	int nx = id.x - int(ubo.Size) / 2;
+	int nz = id.y - int(ubo.Size) / 2;
 	vec2 k = vec2(nx, nz) * deltaK;
 	float kLength = length(k);
 

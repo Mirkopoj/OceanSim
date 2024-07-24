@@ -36,8 +36,7 @@ class SecondApp {
    std::unique_ptr<LveDescriptorPool> globalPool =
        LveDescriptorPool::Builder(lveDevice)
            .setMaxSets(LveSwapChain::MAX_FRAMES_IN_FLIGHT)
-           .addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                        LveSwapChain::MAX_FRAMES_IN_FLIGHT)
+           .addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, LveSwapChain::MAX_FRAMES_IN_FLIGHT)
            .build();
    std::unique_ptr<LveDescriptorPool> imguiPool =
        LveDescriptorPool::Builder(lveDevice)
@@ -47,8 +46,9 @@ class SecondApp {
            .build();
    std::unique_ptr<LveDescriptorPool> computePool =
        LveDescriptorPool::Builder(lveDevice)
-           .setMaxSets(200)
+           .setMaxSets(300)
            .addPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 300)
+           .addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 300)
            .addPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 600)
            .build();
 

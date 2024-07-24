@@ -5,13 +5,13 @@ const float PI = 3.1415926;
 layout(local_size_x = 1, local_size_y = 16) in;
 layout(binding = 0, rgba16f) uniform writeonly image2D butterfly;
 layout(binding = 1) buffer readonly UBO {
-	int Size;
 	float LengthScale;
 	float CutoffHigh;
 	float CutoffLow;
 	float GravityAcceleration;
 	float Depth;
-} ubo;
+	uint Size;
+} ubo[];
 
 vec2 ComplexExp(vec2 a) {
 	return vec2(cos(a.y), sin(a.y)) * exp(a.x);
@@ -19,9 +19,10 @@ vec2 ComplexExp(vec2 a) {
 
 void main() {
 	ivec2 id = ivec2(gl_GlobalInvocationID.xy);
-	uint b = ubo.Size >> (id.x + 1);
-	vec2 mult = 2 * PI * vec2(0, 1) / ubo.Size;
-	uint i = (2 * b * (id.y / b) + id.y % b) % ubo.Size;
+	uint N = ubo[0].Size;
+	uint b = N >> (id.x + 1);
+	vec2 mult = 2 * PI * vec2(0, 1) / N;
+	uint i = (2 * b * (id.y / b) + id.y % b) % N;
 	vec2 twiddle = ComplexExp(-mult * ((id.y / b) * b));
 	imageStore(
 			butterfly,
@@ -30,7 +31,7 @@ void main() {
 		);
 	imageStore(
 			butterfly,
-			ivec2(id.x, id.y + ubo.Size / 2),
+			ivec2(id.x, id.y + N / 2),
 			vec4(-twiddle.x, -twiddle.y, i, i + b)
 		);
 }

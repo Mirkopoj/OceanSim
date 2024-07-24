@@ -2,20 +2,11 @@
 
 layout(local_size_x = 16, local_size_y = 16) in;
 layout(binding = 0, rgba16f) uniform image2D img;
-layout(binding = 1) buffer readonly UBO {
-	int Size;
-	float LengthScale;
-	float CutoffHigh;
-	float CutoffLow;
-	float GravityAcceleration;
-	float Depth;
-} ubo;
 
 void main() {	
 	vec4 res = imageLoad(img, ivec2(gl_GlobalInvocationID.xy));
 
 	res *= 1.0 - 2.0 * ((gl_GlobalInvocationID.x + gl_GlobalInvocationID.y) % 2);
-	//res /= ubo.Size * ubo.Size;
 
 	imageStore(img, ivec2(gl_GlobalInvocationID.xy), res);
 }
