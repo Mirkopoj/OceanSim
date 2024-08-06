@@ -18,6 +18,7 @@
 #include <glm/geometric.hpp>
 #include <glm/trigonometric.hpp>
 #include <memory>
+#include <stdexcept>
 #include <vector>
 
 #include "../lve/lve_buffer.hpp"
@@ -116,37 +117,37 @@ void SecondApp::run() {
                             VK_FORMAT_R16G16B16A16_SFLOAT);
    MyTextureData H03(N, N, 4, lveDevice, VK_FORMAT_R16G16B16A16_SFLOAT);
    MyTextureData DxDzDyDxz0(N, N, 4, lveDevice,
-                           VK_FORMAT_R16G16B16A16_SFLOAT);
+                            VK_FORMAT_R16G16B16A16_SFLOAT);
    MyTextureData DyxDyzDxxDzz0(N, N, 4, lveDevice,
-                              VK_FORMAT_R16G16B16A16_SFLOAT);
+                               VK_FORMAT_R16G16B16A16_SFLOAT);
    MyTextureData DxDzDyDxz1(N, N, 4, lveDevice,
-                           VK_FORMAT_R16G16B16A16_SFLOAT);
+                            VK_FORMAT_R16G16B16A16_SFLOAT);
    MyTextureData DyxDyzDxxDzz1(N, N, 4, lveDevice,
-                              VK_FORMAT_R16G16B16A16_SFLOAT);
+                               VK_FORMAT_R16G16B16A16_SFLOAT);
    MyTextureData DxDzDyDxz2(N, N, 4, lveDevice,
-                           VK_FORMAT_R16G16B16A16_SFLOAT);
+                            VK_FORMAT_R16G16B16A16_SFLOAT);
    MyTextureData DyxDyzDxxDzz2(N, N, 4, lveDevice,
-                              VK_FORMAT_R16G16B16A16_SFLOAT);
+                               VK_FORMAT_R16G16B16A16_SFLOAT);
    MyTextureData DxDzDyDxz3(N, N, 4, lveDevice,
-                           VK_FORMAT_R16G16B16A16_SFLOAT);
+                            VK_FORMAT_R16G16B16A16_SFLOAT);
    MyTextureData DyxDyzDxxDzz3(N, N, 4, lveDevice,
-                              VK_FORMAT_R16G16B16A16_SFLOAT);
+                               VK_FORMAT_R16G16B16A16_SFLOAT);
    MyTextureData ping_pong1_0(N, N, 4, lveDevice,
-                            VK_FORMAT_R16G16B16A16_SFLOAT);
+                              VK_FORMAT_R16G16B16A16_SFLOAT);
    MyTextureData ping_pong2_0(N, N, 4, lveDevice,
-                            VK_FORMAT_R16G16B16A16_SFLOAT);
+                              VK_FORMAT_R16G16B16A16_SFLOAT);
    MyTextureData ping_pong1_1(N, N, 4, lveDevice,
-                            VK_FORMAT_R16G16B16A16_SFLOAT);
+                              VK_FORMAT_R16G16B16A16_SFLOAT);
    MyTextureData ping_pong2_1(N, N, 4, lveDevice,
-                            VK_FORMAT_R16G16B16A16_SFLOAT);
+                              VK_FORMAT_R16G16B16A16_SFLOAT);
    MyTextureData ping_pong1_2(N, N, 4, lveDevice,
-                            VK_FORMAT_R16G16B16A16_SFLOAT);
+                              VK_FORMAT_R16G16B16A16_SFLOAT);
    MyTextureData ping_pong2_2(N, N, 4, lveDevice,
-                            VK_FORMAT_R16G16B16A16_SFLOAT);
+                              VK_FORMAT_R16G16B16A16_SFLOAT);
    MyTextureData ping_pong1_3(N, N, 4, lveDevice,
-                            VK_FORMAT_R16G16B16A16_SFLOAT);
+                              VK_FORMAT_R16G16B16A16_SFLOAT);
    MyTextureData ping_pong2_3(N, N, 4, lveDevice,
-                            VK_FORMAT_R16G16B16A16_SFLOAT);
+                              VK_FORMAT_R16G16B16A16_SFLOAT);
    MyTextureData Displacement_Turbulence0(N, N, 4, lveDevice,
                                           VK_FORMAT_R16G16B16A16_SFLOAT);
    MyTextureData Derivatives0(N, N, 4, lveDevice,
@@ -509,6 +510,7 @@ void SecondApp::run() {
                                    VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
                                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
    auto lambdaBufferInfo = lambdaBuffer->descriptorInfo();
+   lambdaBuffer->map();
 
    std::unique_ptr<LveDescriptorSetLayout> butterfly_desc_lay =
        LveDescriptorSetLayout::Builder(lveDevice)
@@ -1059,6 +1061,18 @@ void SecondApp::run() {
        {0.98823529412f, 0.97637058824f, 0.72941176471f, 0.5f},
        {0.0f, 0.11764705882f, 1.0f, 1.0f},
        {0.0f, 0.0f, 1.0f, 1.0f}};
+
+   VkFence Fence;
+   VkFenceCreateInfo FenceCreateInfo = {
+       .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+       .pNext = nullptr,
+       .flags = 0,
+   };
+   if (vkCreateFence(lveDevice.device(), &FenceCreateInfo, nullptr,
+                     &Fence)) {
+      throw std::runtime_error("failed to create pipeline layout!");
+   }
+
    while (!lveWindow.shouldClose()) {
       glfwPollEvents();
 
@@ -1133,18 +1147,17 @@ void SecondApp::run() {
 
          lamda_buf.time = ubo.time;
          lamda_buf.delta_time = frameTime;
-         lambdaBuffer->map();
          lambdaBuffer->writeToBuffer(&lamda_buf);
-         lambdaBuffer->unmap();
+         lambdaBuffer->flush();
 
          VkSubmitInfo submitInfo = {};
          submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
          submitInfo.commandBufferCount = 1;
          submitInfo.pCommandBuffers = &computeCommandBuffer;
-         vkQueueSubmit(lveDevice.computeQueue(), 1, &submitInfo,
-                       VK_NULL_HANDLE);
-         // Muy lento, cambiar por un fence.
-         vkQueueWaitIdle(lveDevice.computeQueue());
+         vkResetFences(lveDevice.device(), 1, &Fence);
+         vkQueueSubmit(lveDevice.computeQueue(), 1, &submitInfo, Fence);
+         vkWaitForFences(lveDevice.device(), 1, &Fence, true,
+                         uint64_t(-1));
 
          if (new_conf[0].scale != spec_conf[0].scale ||
              new_conf[0].windSpeed != spec_conf[0].windSpeed ||
@@ -1203,6 +1216,7 @@ void SecondApp::run() {
       }
    }
 
+   vkDestroyFence(lveDevice.device(), Fence, nullptr);
    vkDeviceWaitIdle(lveDevice.device());
 }
 
