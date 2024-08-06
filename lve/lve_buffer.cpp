@@ -209,4 +209,27 @@ VkResult LveBuffer::invalidateIndex(int index) {
    return invalidate(alignmentSize, index * alignmentSize);
 }
 
+void LveBuffer::update(VkCommandBuffer &CmdBuffer, VkDeviceSize dataSize,
+                       const void *pData, VkDeviceSize dstOffset) {
+   vkCmdUpdateBuffer(CmdBuffer, getBuffer(), dstOffset, dataSize, pData);
+}
+
+void LveBuffer::barrier(
+    VkCommandBuffer &CmdBuffer, VkAccessFlags srcAccessMask,
+    VkAccessFlags dstAccessMask, VkPipelineStageFlags srcStageMask,
+    VkPipelineStageFlags dstStageMask, uint32_t srcQueueFamilyIndex,
+    uint32_t dstQueueFamilyIndex, VkDeviceSize offset, VkDeviceSize size) {
+   VkBufferMemoryBarrier bufferBarrier = {};
+   bufferBarrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+   bufferBarrier.srcAccessMask = srcAccessMask;
+   bufferBarrier.dstAccessMask = dstAccessMask;
+   bufferBarrier.srcQueueFamilyIndex = srcQueueFamilyIndex;
+   bufferBarrier.dstQueueFamilyIndex = dstQueueFamilyIndex;
+   bufferBarrier.buffer = getBuffer();
+   bufferBarrier.offset = offset;
+   bufferBarrier.size = size;
+   vkCmdPipelineBarrier(CmdBuffer, srcStageMask, dstStageMask, 0, 0,
+                        nullptr, 1, &bufferBarrier, 0, nullptr);
+}
+
 }  // namespace lve

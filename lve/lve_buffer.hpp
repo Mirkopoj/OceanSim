@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vulkan/vulkan_core.h>
+
 #include "lve_device.hpp"
 
 namespace lve {
@@ -57,6 +59,18 @@ class LveBuffer {
    VkDeviceSize getBufferSize() const {
       return bufferSize;
    }
+
+   void update(VkCommandBuffer& CmdBuffer, VkDeviceSize dataSize,
+               const void* pData, VkDeviceSize dstOffset = 0);
+
+   void barrier(VkCommandBuffer& CmdBuffer, VkAccessFlags srcAccessMask,
+                VkAccessFlags dstAccessMask,
+                VkPipelineStageFlags srcStageMask,
+                VkPipelineStageFlags dstStageMask,
+                uint32_t srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                uint32_t dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                VkDeviceSize offset = 0,
+                VkDeviceSize size = VK_WHOLE_SIZE);
 
   private:
    static VkDeviceSize getAlignment(VkDeviceSize instanceSize,

@@ -18,8 +18,9 @@ class ComputeSystem {
    ~ComputeSystem();
 
    void dispatch(int width, int height, int channels,
-                 VkDescriptorSet &DescriptorSet);
-   void await();
+                 VkDescriptorSet &DescriptorSet,
+                 VkCommandBuffer &CmdBuffer);
+   void await(VkCommandBuffer &CmdBuffer);
    void instant_dispatch(int width, int height, int channels,
                          VkDescriptorSet &DescriptorSet);
    VkPipeline get_pipeline() {
@@ -34,8 +35,6 @@ class ComputeSystem {
    VkShaderModule module;
    VkPipeline computePipeline;
    VkPipelineLayout pipelineLayout;
-   VkCommandBuffer CmdBuffer;
-   VkSubmitInfo submitInfo;
    VkFence Fence;
 
    void createFence();
@@ -43,6 +42,9 @@ class ComputeSystem {
    void createPipeline();
    void createShaderModule(const std::string &);
    std::vector<char> readFile(const std::string &filepath);
+
+   static VkPipeline bindedPipeline;
+   static VkDescriptorSet bindedDescriptorSet;
 };
 
 }  // namespace lve

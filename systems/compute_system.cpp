@@ -10,23 +10,14 @@
 
 namespace lve {
 
+VkPipeline ComputeSystem::bindedPipeline;
+VkDescriptorSet ComputeSystem::bindedDescriptorSet;
+
 ComputeSystem::ComputeSystem(
     LveDevice &device,
     const std::vector<VkDescriptorSetLayout> desc_layout,
     const std::string &compFilepath)
-    : lveDevice(device),
-      CmdBuffer{},
-      submitInfo{
-          .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-          .pNext = nullptr,
-          .waitSemaphoreCount = 0,
-          .pWaitSemaphores = nullptr,
-          .pWaitDstStageMask = nullptr,
-          .commandBufferCount = 1,
-          .pCommandBuffers = &CmdBuffer,
-          .signalSemaphoreCount = 0,
-          .pSignalSemaphores = nullptr,
-      } {
+    : lveDevice(device) {
    createFence();
    createPipelineLayout(desc_layout);
    createShaderModule(compFilepath);
@@ -132,29 +123,49 @@ std::vector<char> ComputeSystem::readFile(const std::string &filepath) {
 }
 
 void ComputeSystem::dispatch(int width, int height, int channels,
-                             VkDescriptorSet &DescriptorSet) {
-   CmdBuffer = lveDevice.beginSingleTimeCommands();
-   vkCmdBindPipeline(CmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE,
-                     this->computePipeline);
-   vkCmdBindDescriptorSets(CmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE,
-                           this->pipelineLayout, 0, 1, &DescriptorSet, 0,
-                           nullptr);
+                             VkDescriptorSet &DescriptorSet,
+                             VkCommandBuffer &CmdBuffer) {
+   if (bindedPipeline != this->computePipeline) {
+      bindedPipeline = this->computePipeline;
+      vkCmdBindPipeline(CmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE,
+                        this->computePipeline);
+   }
+   if (bindedDescriptorSet != DescriptorSet) {
+      bindedDescriptorSet = DescriptorSet;
+      vkCmdBindDescriptorSets(CmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE,
+                              this->pipelineLayout, 0, 1, &DescriptorSet,
+                              0, nullptr);
+   }
    vkCmdDispatch(CmdBuffer, width, height, channels);
-   vkEndCommandBuffer(CmdBuffer);
 }
 
-void ComputeSystem::await() {
+void ComputeSystem::await(VkCommandBuffer &CmdBuffer) {
    VkQueue Queue = lveDevice.computeQueue();
    vkResetFences(lveDevice.device(), 1, &this->Fence);
-   vkQueueSubmit(Queue, 1, &this->submitInfo, this->Fence);
+   VkSubmitInfo submitInfo{
+       .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+       .pNext = nullptr,
+       .waitSemaphoreCount = 0,
+       .pWaitSemaphores = nullptr,
+       .pWaitDstStageMask = nullptr,
+       .commandBufferCount = 1,
+       .pCommandBuffers = &CmdBuffer,
+       .signalSemaphoreCount = 0,
+       .pSignalSemaphores = nullptr,
+   };
+   vkQueueSubmit(Queue, 1, &submitInfo, this->Fence);
    vkWaitForFences(lveDevice.device(), 1, &this->Fence, true,
                    uint64_t(-1));
+   vkFreeCommandBuffers(lveDevice.device(), lveDevice.getCommandPool(), 1,
+                        &CmdBuffer);
 }
 
 void ComputeSystem::instant_dispatch(int width, int height, int channels,
                                      VkDescriptorSet &DescriptorSet) {
-   dispatch(width, height, channels, DescriptorSet);
-   await();
+   VkCommandBuffer CmdBuffer = lveDevice.beginSingleTimeCommands();
+   dispatch(width, height, channels, DescriptorSet, CmdBuffer);
+   lveDevice.endCommandBuffer(CmdBuffer);
+   await(CmdBuffer);
 }
 
 }  // namespace lve

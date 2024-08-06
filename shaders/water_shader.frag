@@ -101,7 +101,13 @@ void main() {
 
 	float NdotL = DotClamped(mesoNormal, lightDir);
 
-	//float foam = mix(0.0f, clamp(imageLoad(Displacement_Turbulence, ivec2(mod(fragPosWorld.xz,256))).a, 0.0, 1.0), pow(depth, foam_depth_falloff));
+	/*float turbulence = 
+		  texture(Displacement_Turbulence0, id / comp_ubo.data[0].LengthScale).a
+		+ texture(Displacement_Turbulence1, id / comp_ubo.data[1].LengthScale).a
+		+ texture(Displacement_Turbulence2, id / comp_ubo.data[2].LengthScale).a;
+		//+ texture(Displacement_Turbulence3, id / comp_ubo.data[3].LengthScale).a;
+
+	float foam = mix(0.0f, clamp(-turbulence, 0.0, 1.0), pow(depth, foam_depth_falloff));*/
 
 	float a = roughness;// + foam * foam_roughness_modifier;
 	float ndoth = max(0.0001f, dot(mesoNormal, halfwayDir));
@@ -137,8 +143,13 @@ void main() {
 	scatteredLight += k3 * ubo.scatterColor.rgb + k4 * ubo.bubbleColor.rgb;
 	scatteredLight *= lightColor;
 
+	vec3 fog_color = vec3(0.8, 0.8, 0.8);
+	float fog_damp = -0.0002;
+	vec3 fog = exp(vec3(1,2,3) * fog_damp * length(cameraPosWorld - fragPosWorld));
+
 	vec3 out_color = (1 - F) * scatteredLight + specular;// + F * envReflection;
 	out_color = max(vec3(0, 0, 0), out_color);
-	//out_color = mix(out_color, vec3(1, 1, 1), clamp(foam, 0.0, 1.0));
+	out_color = mix(fog_color, out_color, fog);
+	//out_color = mix(out_color, vec3(0.8, 0.8, 0.8), clamp(foam, 0.0, 1.0));
    outColor = vec4(out_color, 1.0);
 }

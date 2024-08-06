@@ -156,8 +156,8 @@ void LveDevice::createLogicalDevice() {
 
    VkPhysicalDeviceFeatures deviceFeatures = {};
    deviceFeatures.samplerAnisotropy = VK_TRUE;
-	deviceFeatures.fillModeNonSolid = VK_TRUE;
-	deviceFeatures.tessellationShader = VK_TRUE;
+   deviceFeatures.fillModeNonSolid = VK_TRUE;
+   deviceFeatures.tessellationShader = VK_TRUE;
 
    VkDeviceCreateInfo createInfo = {};
    createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -569,6 +569,27 @@ void LveDevice::createImageWithInfo(const VkImageCreateInfo &imageInfo,
    if (vkBindImageMemory(device_, image, imageMemory, 0) != VK_SUCCESS) {
       throw std::runtime_error("failed to bind image memory!");
    }
+}
+
+VkCommandBuffer LveDevice::beginCommandBuffer() {
+   VkCommandBuffer commandBuffer;
+   VkCommandBufferAllocateInfo allocInfo = {};
+   allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+   allocInfo.commandPool = getCommandPool();
+   allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+   allocInfo.commandBufferCount = 1;
+
+   vkAllocateCommandBuffers(device(), &allocInfo, &commandBuffer);
+
+   VkCommandBufferBeginInfo beginInfo = {};
+   beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+
+   vkBeginCommandBuffer(commandBuffer, &beginInfo);
+   return commandBuffer;
+}
+
+void LveDevice::endCommandBuffer(VkCommandBuffer commandBuffer) {
+   vkEndCommandBuffer(commandBuffer);
 }
 
 }  // namespace lve

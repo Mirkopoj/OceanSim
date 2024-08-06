@@ -188,7 +188,7 @@ void LvePipeline::defaultPipelineConfigInfo(
    configInfo.rasterizationInfo.rasterizerDiscardEnable = VK_FALSE;
    configInfo.rasterizationInfo.polygonMode = VK_POLYGON_MODE_FILL;
    configInfo.rasterizationInfo.lineWidth = 1.0f;
-   //configInfo.rasterizationInfo.cullMode = VK_CULL_MODE_BACK_BIT;
+   // configInfo.rasterizationInfo.cullMode = VK_CULL_MODE_BACK_BIT;
    configInfo.rasterizationInfo.cullMode = VK_CULL_MODE_NONE;
    configInfo.rasterizationInfo.frontFace = VK_FRONT_FACE_CLOCKWISE;
    configInfo.rasterizationInfo.depthBiasEnable = VK_FALSE;
@@ -281,6 +281,22 @@ void LvePipeline::enableAlphaBlending(PipelineConfigInfo& configInfo) {
    configInfo.colorBlendAttachment.dstAlphaBlendFactor =
        VK_BLEND_FACTOR_ZERO;
    configInfo.colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+}
+
+void LvePipeline::barrier(VkCommandBuffer& CmdBuffer,
+                          VkPipelineStageFlags srcStageMask,
+                          VkPipelineStageFlags dstStageMask,
+                          VkAccessFlags srcAccessMask,
+                          VkAccessFlags dstAccessMask) {
+   VkMemoryBarrier memoryBarrier = {};
+   memoryBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+   memoryBarrier.srcAccessMask = srcAccessMask;
+   memoryBarrier.dstAccessMask = dstAccessMask;
+   vkCmdPipelineBarrier(
+       CmdBuffer,
+       srcStageMask,  
+       dstStageMask,  
+       0, 1, &memoryBarrier, 0, nullptr, 0, nullptr);
 }
 
 }  // namespace lve

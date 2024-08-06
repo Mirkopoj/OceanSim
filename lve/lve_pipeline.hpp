@@ -49,6 +49,12 @@ class LvePipeline {
    static void defaultPipelineConfigInfo(PipelineConfigInfo &configInfo);
    static void enableAlphaBlending(PipelineConfigInfo &configInfo);
 
+   static void barrier(VkCommandBuffer &commandBuffer,
+                VkPipelineStageFlags srcStageMask,
+                VkPipelineStageFlags dstStageMask,
+                VkAccessFlags srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT,
+                VkAccessFlags dstAccessMask = VK_ACCESS_SHADER_READ_BIT);
+
   private:
    static std::vector<char> readFile(const std::string &filepath);
 

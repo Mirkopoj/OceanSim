@@ -98,6 +98,9 @@ class LveDevice {
 
    VkPhysicalDeviceProperties properties;
 
+   VkCommandBuffer beginCommandBuffer();
+   void endCommandBuffer(VkCommandBuffer commandBuffer);
+
   private:
    void createInstance();
    void setupDebugMessenger();

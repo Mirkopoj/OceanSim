@@ -44,9 +44,9 @@ layout(location = 1) in vec2 ivertPos[];
 layout(vertices = 3) out;
 layout(location = 0) out vec2 overtPos[];
 
-bool frustumCheck() {
-	const float radius = 8.0f;
-	vec4 pos = gl_in[gl_InvocationID].gl_Position;
+bool frustumCheck(int index) {
+	const float radius = 2.0f;
+	vec4 pos = gl_in[index].gl_Position;
 	vec2 ndc = pos.xy/pos.w;
 	return -radius < ndc.x && ndc.x < radius 
 		 && -radius < ndc.y && ndc.y < radius;
@@ -60,7 +60,7 @@ float tessellationLevel(vec3 fragPosWorld) {
 
 void main() {
 	if (gl_InvocationID == 0) {
-		if (frustumCheck()){
+		if (frustumCheck(0) || frustumCheck(1) || frustumCheck(2)){
 			vec3 fragPosWorld = (ifragPosWorld[1] + ifragPosWorld[2]) / 2;
 			gl_TessLevelOuter[0] = tessellationLevel(fragPosWorld);
 			fragPosWorld = (ifragPosWorld[2] + ifragPosWorld[0]) / 2;
