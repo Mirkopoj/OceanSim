@@ -10,6 +10,7 @@ layout(set = 0, binding = 0) uniform GloablUbo {
 	vec3 lightPosition;
 	uint cols;
 	float time;
+	uint caminata;
 } ubo;
 
 struct CompUboIner
@@ -39,9 +40,12 @@ layout(set = 1, binding = 7) uniform sampler2D Displacement_Turbulence3;
 layout(set = 1, binding = 8) uniform sampler2D Derivatives3;
 
 layout(location = 0) in vec2 ivertPos[];
+layout(location = 1) in vec3 icamPosWorld[];
+layout(location = 2) in mat4 iview[];
 
 layout(triangles, equal_spacing, cw) in;
 layout(location = 0) out vec3 ofragPosWorld;
+layout(location = 1) out vec3 ocamPosWorld;
 
 void main() {
 	 vec2 id =	(gl_TessCoord.x * ivertPos[0]) 
@@ -55,8 +59,9 @@ void main() {
 		+ texture(Displacement_Turbulence3, id / comp_ubo.data[3].LengthScale).xyz;
    vec4 positionWorld = vec4(position, 1.0);
 
-   gl_Position = ubo.projection * ubo.view * positionWorld;
+   gl_Position = ubo.projection * iview[0] * positionWorld;
 	ofragPosWorld = position;
+	ocamPosWorld = icamPosWorld[0];
 }
 
 

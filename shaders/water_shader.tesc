@@ -10,6 +10,7 @@ layout(set = 0, binding = 0) uniform GloablUbo {
 	vec3 lightPosition;
 	uint cols;
 	float time;
+	uint caminata;
 } ubo;
 
 struct CompUboIner
@@ -40,9 +41,13 @@ layout(set = 1, binding = 8) uniform sampler2D Derivatives3;
 
 layout(location = 0) in vec3 ifragPosWorld[];
 layout(location = 1) in vec2 ivertPos[];
+layout(location = 2) in vec3 icamPosWorld[];
+layout(location = 3) in mat4 iview[];
 
 layout(vertices = 3) out;
 layout(location = 0) out vec2 overtPos[];
+layout(location = 1) out vec3 ocamPosWorld[];
+layout(location = 2) out mat4 oview[];
 
 bool frustumCheck(int index) {
 	const float radius = 2.0f;
@@ -53,8 +58,7 @@ bool frustumCheck(int index) {
 }
 
 float tessellationLevel(vec3 fragPosWorld) {
-   vec3 cameraPosWorld = ubo.invView[3].xyz;
-   float dist = length(cameraPosWorld - fragPosWorld);
+   float dist = length(icamPosWorld[0] - fragPosWorld);
 	return clamp((150 - dist) / 10, 0.1, 30.0);
 }
 
@@ -77,5 +81,7 @@ void main() {
 	}
 	gl_out[gl_InvocationID].gl_Position = gl_in[gl_InvocationID].gl_Position;
 	overtPos[gl_InvocationID] = ivertPos[gl_InvocationID];
+	oview[gl_InvocationID] = iview[gl_InvocationID];
+	ocamPosWorld[gl_InvocationID] = icamPosWorld[gl_InvocationID];
 }
 

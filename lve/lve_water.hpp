@@ -13,7 +13,7 @@
 
 namespace lve {
 
-class LveTerrain {
+class LveWater {
   public:
    struct Vertex {
       static std::vector<VkVertexInputBindingDescription>
@@ -21,13 +21,13 @@ class LveTerrain {
       static std::vector<VkVertexInputAttributeDescription>
       getAttributeDescriptions();
    };
-   LveTerrain(LveDevice &device, uint32_t x, uint32_t y);
-   ~LveTerrain();
+   LveWater(LveDevice &device, uint32_t x, uint32_t y);
+   ~LveWater();
 
-   LveTerrain(const LveTerrain &) = delete;
-   LveTerrain &operator=(const LveTerrain &) = delete;
+   LveWater(const LveWater &) = delete;
+   LveWater &operator=(const LveWater &) = delete;
 
-   static std::unique_ptr<LveTerrain> createModel(LveDevice &device,
+   static std::unique_ptr<LveWater> createModel(LveDevice &device,
                                                   uint32_t x, uint32_t y);
 
    void draw(VkCommandBuffer commandBuffer);

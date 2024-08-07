@@ -25,7 +25,6 @@
 #include "../lve/lve_camera.hpp"
 #include "../lve/lve_descriptors.hpp"
 #include "../lve/lve_swap_chain.hpp"
-#include "../lve/lve_water.hpp"
 #include "../movement_controllers/terrain_movement_controller.hpp"
 #include "../systems/gui_system.hpp"
 #include "../systems/water_render_system.hpp"
@@ -88,7 +87,7 @@ void SecondApp::run() {
    LveGameObject viewerObject = LveGameObject::createGameObject();
    fixViewer(viewerObject, cameraHeight);
 
-   TerrainMovementController cameraController{};
+   WaterMovementController cameraController{};
 
    ImGuiGui myimgui(lveWindow.getGLFWwindow(), lveDevice, lveRenderer,
                     imguiPool->descriptor_pool());
@@ -950,7 +949,7 @@ void SecondApp::run() {
        .writeImage(8, &DerivativesImageInfo3)
        .build(disp_desc_set);
 
-   TerrainRenderSystem terrainRenderSystem{
+   WaterRenderSystem terrainRenderSystem{
        lveDevice,
        lveRenderer.getSwapChainRenderPass(),
        globalSetLayout->getDescriptorSetLayout(),
@@ -1084,8 +1083,7 @@ void SecondApp::run() {
       currentTime = newTime;
 
       cameraController.moveInPlaneXZ(lveWindow.getGLFWwindow(), frameTime,
-                                     viewerObject, altittudeMap,
-                                     cameraHeight, caminata);
+                                     viewerObject, cameraHeight, xn, yn);
 
       camera.setViewYXZ(viewerObject.transform.translation,
                         viewerObject.transform.rotation);
@@ -1128,6 +1126,7 @@ void SecondApp::run() {
          ubo.bubbleColor.r = colors[2][0];
          ubo.bubbleColor.g = colors[2][1];
          ubo.bubbleColor.b = colors[2][2];
+         ubo.caminata = caminata;
 
          uboBuffers[frameIndex]->writeToBuffer(&ubo);
          uboBuffers[frameIndex]->flush();
@@ -1138,7 +1137,7 @@ void SecondApp::run() {
          if (terrain) {
             terrainRenderSystem.renderTerrain(
                 frameInfo,
-                static_cast<TerrainRenderSystem::PipeLineType>(pipeline));
+                static_cast<WaterRenderSystem::PipeLineType>(pipeline));
          }
          myimgui.render(commandBuffer);
 
@@ -1223,14 +1222,7 @@ void SecondApp::run() {
 void SecondApp::loadGameObjects() {
    yn = N * 2;
    xn = N * 2;
-   for (size_t x = 0; x < xn; ++x) {
-      std::vector<glm::float32> row;
-      for (size_t y = 0; y < yn; ++y) {
-         row.push_back(0);
-      }
-      altittudeMap.push_back(row);
-   };
-   terrain = LveTerrain::createModel(lveDevice, xn, yn);
+   terrain = LveWater::createModel(lveDevice, xn, yn);
 }
 
 void SecondApp::fixViewer(LveGameObject& viewerObject,
@@ -1246,8 +1238,7 @@ void SecondApp::fixViewer(LveGameObject& viewerObject,
        glm::clamp((uint32_t)roundf(viewerObject.transform.translation.z),
                   (uint32_t)0, yn - 1);
    if (xn && yn) {
-      viewerObject.transform.translation.y =
-          -cameraHeight - altittudeMap[y][x];
+      viewerObject.transform.translation.y = -cameraHeight;
    }
 }
 

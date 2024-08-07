@@ -15,7 +15,7 @@
 
 namespace lve {
 
-TerrainRenderSystem::TerrainRenderSystem(
+WaterRenderSystem::WaterRenderSystem(
     LveDevice &device, VkRenderPass renderPass,
     VkDescriptorSetLayout globalSetLayout, const std::string &vertFilepath,
     const std::string &fragFilepath, const std::string &tesCFilepath,
@@ -29,11 +29,11 @@ TerrainRenderSystem::TerrainRenderSystem(
                   tesEFilepath, PipeLineType::WireFrame);
 }
 
-TerrainRenderSystem::~TerrainRenderSystem() {
+WaterRenderSystem::~WaterRenderSystem() {
    vkDestroyPipelineLayout(lveDevice.device(), pipelineLayout, nullptr);
 }
 
-void TerrainRenderSystem::createPipelineLayout(
+void WaterRenderSystem::createPipelineLayout(
     VkDescriptorSetLayout globalSetLayout,
     VkDescriptorSetLayout dispSetLayout) {
    std::vector<VkDescriptorSetLayout> descriptoSetLayouts{globalSetLayout,
@@ -52,7 +52,7 @@ void TerrainRenderSystem::createPipelineLayout(
    }
 }
 
-void TerrainRenderSystem::createPipeline(VkRenderPass renderPass,
+void WaterRenderSystem::createPipeline(VkRenderPass renderPass,
                                          const std::string &vertFilepath,
                                          const std::string &fragFilepath,
                                          const std::string &tesCFilepath,
@@ -73,9 +73,9 @@ void TerrainRenderSystem::createPipeline(VkRenderPass renderPass,
    }
 
    pipelineConfig.bindingDescriptions =
-       LveTerrain::Vertex::getBindingDescriptions();
+       LveWater::Vertex::getBindingDescriptions();
    pipelineConfig.attributeDescriptions =
-       LveTerrain::Vertex::getAttributeDescriptions();
+       LveWater::Vertex::getAttributeDescriptions();
    pipelineConfig.renderPass = renderPass;
    pipelineConfig.pipelineLayout = pipelineLayout;
    lvePipeline[static_cast<size_t>(pipeline)] =
@@ -84,7 +84,7 @@ void TerrainRenderSystem::createPipeline(VkRenderPass renderPass,
                                      pipelineConfig);
 }
 
-void TerrainRenderSystem::renderTerrain(FrameInfo &frameInfo,
+void WaterRenderSystem::renderTerrain(FrameInfo &frameInfo,
                                         PipeLineType pipeline) {
    lvePipeline[static_cast<size_t>(pipeline)]->bind(
        frameInfo.commandBuffer);

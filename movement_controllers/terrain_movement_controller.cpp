@@ -11,10 +11,10 @@
 
 namespace lve {
 
-void TerrainMovementController::moveInPlaneXZ(
-    GLFWwindow* window, float dt, LveGameObject& gameObject,
-    std::vector<std::vector<glm::float32>>& altitudeMap,
-    float cameraHeight, bool caminata) {
+void WaterMovementController::moveInPlaneXZ(GLFWwindow* window, float dt,
+                                            LveGameObject& gameObject,
+                                            float cameraHeight,
+                                            uint32_t ext_x, uint32_t ext_y) {
    int state = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT);
    if (state == GLFW_PRESS && !changedMouse) {
       int cursor_mode =
@@ -81,16 +81,9 @@ void TerrainMovementController::moveInPlaneXZ(
          moveDir -= upDir;
       }
 
-		uint32_t scale = 5;
-      uint32_t yn = altitudeMap.size() * scale;
-      if (!yn) {
-         return;
-      }
-
-      uint32_t xn = altitudeMap[0].size() * scale;
-      if (!xn) {
-         return;
-      }
+      uint32_t scale = 5;
+		uint32_t xn = ext_x * scale;
+		uint32_t yn = ext_y * scale;
 
       uint32_t x = glm::clamp(
           xn - (uint32_t)roundf(gameObject.transform.translation.x),
@@ -100,7 +93,7 @@ void TerrainMovementController::moveInPlaneXZ(
                      (uint32_t)0, yn - 1);
 
       float roof = fmin(xn, yn);
-      float floor = 0;//altitudeMap[y][x];
+      float floor = -roof;
 
       float moveSpeed =
           moveSpeedMin +
@@ -130,13 +123,8 @@ void TerrainMovementController::moveInPlaneXZ(
       float x_reg = glm::fract(gameObject.transform.translation.x);
       float y_reg = glm::fract(gameObject.transform.translation.z);
 
-      float z00 = 0;//altitudeMap[y0][x0];
-      float z01 = 0;//altitudeMap[y0][x1];
-      float z10 = 0;//altitudeMap[y1][x0];
-
-      float cam_floor = -cameraHeight -
-                        (z00 + x_reg * (z01 - z00) + y_reg * (z10 - z00));
-      float cam_roof = caminata ? cam_floor - 0.1 : -roof;
+      float cam_floor = -floor;
+      float cam_roof = -roof;
       gameObject.transform.translation = glm::clamp(
           gameObject.transform.translation, glm::vec3{0.f, cam_roof, 0.f},
           glm::vec3{xn, cam_floor, yn});

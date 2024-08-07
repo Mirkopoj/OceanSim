@@ -52,14 +52,12 @@ class SecondApp {
            .addPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 600)
            .build();
 
-   std::unique_ptr<LveTerrain> terrain = nullptr;
+   std::unique_ptr<LveWater> terrain = nullptr;
 
    uint32_t xn = 0;
    uint32_t yn = 0;
 
    size_t N;
-
-   std::vector<std::vector<glm::float32>> altittudeMap{};
 
    void fixViewer(LveGameObject &, float);
 };

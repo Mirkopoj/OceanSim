@@ -3,6 +3,7 @@
 const float PI = 3.1415926;
 
 layout(location = 0) in vec3 fragPosWorld;
+layout(location = 1) in vec3 cameraPosWorld;
 
 layout(location = 0) out vec4 outColor;
 
@@ -16,6 +17,7 @@ layout(set = 0, binding = 0) uniform GloablUbo {
 	vec3 lightPosition;
 	uint cols;
 	float time;
+	uint caminata;
 } ubo;
 
 struct CompUboIner
@@ -90,7 +92,6 @@ void main() {
 
    vec3 diffuseLight = lightColor * max(dot(normal, normalize(ubo.lightPosition)),0.0);
 	vec3 lightDir = normalize(ubo.lightPosition);
-   vec3 cameraPosWorld = ubo.invView[3].xyz;
    vec3 viewDir = normalize(cameraPosWorld - fragPosWorld);
    vec3 halfwayDir = normalize(lightDir + viewDir);
 	float depth = gl_FragCoord.z;

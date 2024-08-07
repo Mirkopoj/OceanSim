@@ -14,32 +14,32 @@
 
 namespace lve {
 
-LveTerrain::LveTerrain(LveDevice &device, uint32_t x, uint32_t y)
+LveWater::LveWater(LveDevice &device, uint32_t x, uint32_t y)
     : lveDevice{device} {
    vertexCount = ((y + (x - 1) * (2 * y - 2)) - 2) * 3;
 }
 
-LveTerrain::~LveTerrain() {
+LveWater::~LveWater() {
 }
 
-std::unique_ptr<LveTerrain> LveTerrain::createModel(LveDevice &device,
+std::unique_ptr<LveWater> LveWater::createModel(LveDevice &device,
                                                     uint32_t x,
                                                     uint32_t y) {
-   return std::make_unique<LveTerrain>(device, x, y);
+   return std::make_unique<LveWater>(device, x, y);
 }
 
-void LveTerrain::draw(VkCommandBuffer commandBuffer) {
+void LveWater::draw(VkCommandBuffer commandBuffer) {
    vkCmdDraw(commandBuffer, vertexCount, 1, 0, 0);
 }
 
 std::vector<VkVertexInputBindingDescription>
-LveTerrain::Vertex::getBindingDescriptions() {
+LveWater::Vertex::getBindingDescriptions() {
    std::vector<VkVertexInputBindingDescription> bindingDescriptions(0);
    return bindingDescriptions;
 }
 
 std::vector<VkVertexInputAttributeDescription>
-LveTerrain::Vertex::getAttributeDescriptions() {
+LveWater::Vertex::getAttributeDescriptions() {
    std::vector<VkVertexInputAttributeDescription> attributeDescriptions{};
    return attributeDescriptions;
 }

@@ -50,10 +50,11 @@ void ImGuiGui::new_frame() {
    ImGui::NewFrame();
 }
 
-void ImGuiGui::update(lve::TerrainMovementController &cameraControler,
+void ImGuiGui::update(lve::WaterMovementController &cameraControler,
                       bool &caminata, size_t &pipeline, glm::vec3 coord,
                       float frameTime, MyTextureData *img[],
-                      SpectrumConfig params[], float &angle,float (&colors)[3][4]) {
+                      SpectrumConfig params[], float &angle,
+                      float (&colors)[3][4]) {
    ImGui::Begin("Sensibilidad");
    ImGui::SliderFloat("Velocidad minima", &cameraControler.moveSpeedMin,
                       0.1f, cameraControler.moveSpeedMax);
@@ -162,11 +163,10 @@ void ImGuiGui::update(lve::TerrainMovementController &cameraControler,
    ImGui::End();
 
    ImGui::Begin("Colors");
-	ImGui::ColorPicker4("Sun", colors[0]);
-	ImGui::ColorPicker3("Scatter", colors[1]);
-	ImGui::ColorPicker3("Bubbles", colors[2]);
-	ImGui::End();
-
+   ImGui::ColorPicker4("Sun", colors[0]);
+   ImGui::ColorPicker3("Scatter", colors[1]);
+   ImGui::ColorPicker3("Bubbles", colors[2]);
+   ImGui::End();
 }
 
 void ImGuiGui::render(VkCommandBuffer command_buffer) {

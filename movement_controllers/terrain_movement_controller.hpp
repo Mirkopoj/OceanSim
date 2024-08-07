@@ -2,13 +2,13 @@
 
 #include <GLFW/glfw3.h>
 
-#include <vector>
+#include <cstdint>
 
 #include "../lve/lve_game_object.hpp"
 
 namespace lve {
 
-class TerrainMovementController {
+class WaterMovementController {
   public:
    struct KeyMappings {
       int moveLeft = GLFW_KEY_A;
@@ -24,9 +24,8 @@ class TerrainMovementController {
    };
 
    void moveInPlaneXZ(GLFWwindow* window, float dt,
-                      LveGameObject& gameObject,
-                      std::vector<std::vector<glm::float32>>& altitudeMap,
-                      float cameraHeight, bool caminata);
+                      LveGameObject& gameObject, float cameraHeight,
+                      uint32_t xn, uint32_t yn);
 
    KeyMappings keys{};
    float moveSpeedMin{25.f};

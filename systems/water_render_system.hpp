@@ -10,14 +10,14 @@
 
 namespace lve {
 
-class TerrainRenderSystem {
+class WaterRenderSystem {
   public:
    enum class PipeLineType {
       Normal,
       WireFrame,
    };
 
-   TerrainRenderSystem(LveDevice &device, VkRenderPass renderPass,
+   WaterRenderSystem(LveDevice &device, VkRenderPass renderPass,
                        VkDescriptorSetLayout globalSetLayout,
                        const std::string &vertFilepath,
                        const std::string &fragFilepath,
@@ -25,10 +25,10 @@ class TerrainRenderSystem {
                        const std::string &tesEFilepath,
                        VkDescriptorSet dispDesc,
                        VkDescriptorSetLayout dispLay);
-   ~TerrainRenderSystem();
+   ~WaterRenderSystem();
 
-   TerrainRenderSystem(const TerrainRenderSystem &) = delete;
-   TerrainRenderSystem &operator=(const TerrainRenderSystem &) = delete;
+   WaterRenderSystem(const WaterRenderSystem &) = delete;
+   WaterRenderSystem &operator=(const WaterRenderSystem &) = delete;
 
    void renderTerrain(FrameInfo &frameInfo, PipeLineType pipeline);
 

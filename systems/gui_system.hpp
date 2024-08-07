@@ -59,7 +59,7 @@ class ImGuiGui {
    ~ImGuiGui();
 
    void new_frame();
-   void update(lve::TerrainMovementController &cameraControler,
+   void update(lve::WaterMovementController &cameraControler,
                bool &caminata, size_t &pipeline, glm::vec3 coord,
                float frameTime, MyTextureData *img[],
                SpectrumConfig params[], float &angle,
