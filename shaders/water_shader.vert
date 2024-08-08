@@ -15,7 +15,7 @@ layout(set = 0, binding = 0) uniform GloablUbo {
 	vec3 lightPosition;
 	uint cols;
 	float time;
-	uint caminata;
+	uint navegando;
 } ubo;
 
 struct CompUboIner
@@ -69,16 +69,31 @@ void main() {
 
 	mat4 l_view = ubo.view;
 	vec3 cpos = ubo.invView[3].xyz;
-	if (ubo.caminata != 0){
-		vec3 u = vec3(ubo.view[0][0], ubo.view[1][0], ubo.view[2][0]);
-		vec3 v = vec3(ubo.view[0][1], ubo.view[1][1], ubo.view[2][1]);
-		vec3 w = vec3(ubo.view[0][2], ubo.view[1][2], ubo.view[2][2]);
+	if (ubo.navegando != 0){
+		vec4 derivatives = 
+				texture(Derivatives0, cpos.xz / comp_ubo.data[0].LengthScale)
+			 + texture(Derivatives1, cpos.xz / comp_ubo.data[1].LengthScale);
+		vec2 slope = vec2(derivatives.x / (1 + derivatives.z),
+						 derivatives.y / (1 + derivatives.w));
+
+		vec3 rigth = ubo.invView[0].xyz;
+		vec3 up = normalize(vec3(-slope.x, 1, -slope.y));
+		vec3 front = cross(rigth, up);
+		rigth = cross(up, front);
+
+		float x2 = ubo.invView[2].y;
+		float x1 = cos(asin(x2));
+		
+		front = normalize(x1 * front + x2 * up);
+		up = cross(front, rigth);
+
 		cpos = vec3(cpos.x, -2, cpos.z)
 			+ texture(Displacement_Turbulence0, cpos.xz / comp_ubo.data[0].LengthScale).xyz
-			+ texture(Displacement_Turbulence1, cpos.xz / comp_ubo.data[1].LengthScale).xyz
-			+ texture(Displacement_Turbulence2, cpos.xz / comp_ubo.data[2].LengthScale).xyz
-			+ texture(Displacement_Turbulence3, cpos.xz / comp_ubo.data[3].LengthScale).xyz;
-		l_view[3] = vec4(-dot(u, cpos), -dot(v, cpos), -dot(w, cpos), 1);
+			+ texture(Displacement_Turbulence1, cpos.xz / comp_ubo.data[1].LengthScale).xyz;
+		l_view[0] = vec4(rigth.x, up.x, front.x, 0);
+		l_view[1] = vec4(rigth.y, up.y, front.y, 0);
+		l_view[2] = vec4(rigth.z, up.z, front.z, 0);
+		l_view[3] = vec4(-dot(rigth, cpos), -dot(up, cpos), -dot(front, cpos), 1);
 	}
 
    gl_Position = ubo.projection * l_view * positionWorld;

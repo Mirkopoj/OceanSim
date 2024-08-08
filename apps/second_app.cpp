@@ -25,7 +25,7 @@
 #include "../lve/lve_camera.hpp"
 #include "../lve/lve_descriptors.hpp"
 #include "../lve/lve_swap_chain.hpp"
-#include "../movement_controllers/terrain_movement_controller.hpp"
+#include "../movement_controllers/water_movement_controller.hpp"
 #include "../systems/gui_system.hpp"
 #include "../systems/water_render_system.hpp"
 #include "lve/lve_pipeline.hpp"
@@ -93,7 +93,7 @@ void SecondApp::run() {
                     imguiPool->descriptor_pool());
 
    auto currentTime = std::chrono::high_resolution_clock::now();
-   bool caminata = false;
+   bool navegando = false;
    bool viento = false;
 
    size_t pipeline = 0;
@@ -949,7 +949,7 @@ void SecondApp::run() {
        .writeImage(8, &DerivativesImageInfo3)
        .build(disp_desc_set);
 
-   WaterRenderSystem terrainRenderSystem{
+   WaterRenderSystem waterRenderSystem{
        lveDevice,
        lveRenderer.getSwapChainRenderPass(),
        globalSetLayout->getDescriptorSetLayout(),
@@ -1083,7 +1083,7 @@ void SecondApp::run() {
       currentTime = newTime;
 
       cameraController.moveInPlaneXZ(lveWindow.getGLFWwindow(), frameTime,
-                                     viewerObject, cameraHeight, xn, yn);
+                                     viewerObject, navegando, xn, yn);
 
       camera.setViewYXZ(viewerObject.transform.translation,
                         viewerObject.transform.rotation);
@@ -1099,11 +1099,11 @@ void SecondApp::run() {
                              commandBuffer,
                              camera,
                              globalDescriptorSets[frameIndex],
-                             terrain};
+                             water};
          myimgui.new_frame();
 
          // update
-         myimgui.update(cameraController, caminata, pipeline,
+         myimgui.update(cameraController, navegando, pipeline,
                         viewerObject.transform.translation, frameTime,
                         imgs, new_conf, angle, colors);
 
@@ -1126,7 +1126,7 @@ void SecondApp::run() {
          ubo.bubbleColor.r = colors[2][0];
          ubo.bubbleColor.g = colors[2][1];
          ubo.bubbleColor.b = colors[2][2];
-         ubo.caminata = caminata;
+         ubo.navegando = navegando;
 
          uboBuffers[frameIndex]->writeToBuffer(&ubo);
          uboBuffers[frameIndex]->flush();
@@ -1134,8 +1134,8 @@ void SecondApp::run() {
          // render system
          lveRenderer.beginSwapChainRenderPass(commandBuffer);
 
-         if (terrain) {
-            terrainRenderSystem.renderTerrain(
+         if (water) {
+            waterRenderSystem.renderTerrain(
                 frameInfo,
                 static_cast<WaterRenderSystem::PipeLineType>(pipeline));
          }
@@ -1222,7 +1222,7 @@ void SecondApp::run() {
 void SecondApp::loadGameObjects() {
    yn = N * 2;
    xn = N * 2;
-   terrain = LveWater::createModel(lveDevice, xn, yn);
+   water = LveWater::createModel(lveDevice, xn, yn);
 }
 
 void SecondApp::fixViewer(LveGameObject& viewerObject,

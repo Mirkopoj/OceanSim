@@ -96,7 +96,7 @@ void WaterRenderSystem::renderTerrain(FrameInfo &frameInfo,
                            VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout,
                            0, 2, descs, 0, nullptr);
 
-   frameInfo.terrain->draw(frameInfo.commandBuffer);
+   frameInfo.water->draw(frameInfo.commandBuffer);
 }
 
 }  // namespace lve

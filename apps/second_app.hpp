@@ -52,7 +52,7 @@ class SecondApp {
            .addPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 600)
            .build();
 
-   std::unique_ptr<LveWater> terrain = nullptr;
+   std::unique_ptr<LveWater> water = nullptr;
 
    uint32_t xn = 0;
    uint32_t yn = 0;

@@ -1,4 +1,4 @@
-#include "terrain_movement_controller.hpp"
+#include "water_movement_controller.hpp"
 
 #include <GLFW/glfw3.h>
 
@@ -13,8 +13,8 @@ namespace lve {
 
 void WaterMovementController::moveInPlaneXZ(GLFWwindow* window, float dt,
                                             LveGameObject& gameObject,
-                                            float cameraHeight,
-                                            uint32_t ext_x, uint32_t ext_y) {
+                                            bool navegando, uint32_t ext_x,
+                                            uint32_t ext_y) {
    int state = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT);
    if (state == GLFW_PRESS && !changedMouse) {
       int cursor_mode =
@@ -82,8 +82,8 @@ void WaterMovementController::moveInPlaneXZ(GLFWwindow* window, float dt,
       }
 
       uint32_t scale = 5;
-		uint32_t xn = ext_x * scale;
-		uint32_t yn = ext_y * scale;
+      uint32_t xn = ext_x * scale;
+      uint32_t yn = ext_y * scale;
 
       uint32_t x = glm::clamp(
           xn - (uint32_t)roundf(gameObject.transform.translation.x),
@@ -96,9 +96,12 @@ void WaterMovementController::moveInPlaneXZ(GLFWwindow* window, float dt,
       float floor = -roof;
 
       float moveSpeed =
-          moveSpeedMin +
-          moveSpeedMax * ((-gameObject.transform.translation.y - floor) /
-                          (roof - floor));
+          navegando
+              ? moveSpeedMin
+              : moveSpeedMin +
+                    moveSpeedMax *
+                        ((-gameObject.transform.translation.y - floor) /
+                         (roof - floor));
 
       if (glm::dot(moveDir, moveDir) >
           std::numeric_limits<float>::epsilon()) {

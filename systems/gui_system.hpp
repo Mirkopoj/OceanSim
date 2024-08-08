@@ -5,7 +5,7 @@
 
 #include "../lve/lve_device.hpp"
 #include "../lve/lve_renderer.hpp"
-#include "../movement_controllers/terrain_movement_controller.hpp"
+#include "../movement_controllers/water_movement_controller.hpp"
 
 typedef struct {
    glm::float32 scale;
@@ -60,7 +60,7 @@ class ImGuiGui {
 
    void new_frame();
    void update(lve::WaterMovementController &cameraControler,
-               bool &caminata, size_t &pipeline, glm::vec3 coord,
+               bool &navegando, size_t &pipeline, glm::vec3 coord,
                float frameTime, MyTextureData *img[],
                SpectrumConfig params[], float &angle,
                float (&colors)[3][4]);

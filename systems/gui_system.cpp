@@ -51,7 +51,7 @@ void ImGuiGui::new_frame() {
 }
 
 void ImGuiGui::update(lve::WaterMovementController &cameraControler,
-                      bool &caminata, size_t &pipeline, glm::vec3 coord,
+                      bool &navegando, size_t &pipeline, glm::vec3 coord,
                       float frameTime, MyTextureData *img[],
                       SpectrumConfig params[], float &angle,
                       float (&colors)[3][4]) {
@@ -66,13 +66,13 @@ void ImGuiGui::update(lve::WaterMovementController &cameraControler,
    ImGui::Text("fps: %f, (%f ms)", 1 / frameTime, frameTime * 1000);
    ImGui::End();
 
-   int caminata_i = caminata;
+   int navegando_i = navegando;
    ImGui::Begin("Modo de movimiento");
-   ImGui::RadioButton("Caminata", &caminata_i, 1);
+   ImGui::RadioButton("Navegacion", &navegando_i, 1);
    ImGui::SameLine();
-   ImGui::RadioButton("Vuelo", &caminata_i, 0);
+   ImGui::RadioButton("Vuelo", &navegando_i, 0);
    ImGui::End();
-   caminata = caminata_i;
+   navegando = navegando_i;
 
    int pipeline_i = pipeline;
    ImGui::Begin("Modo de rederizado");

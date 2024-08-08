@@ -10,7 +10,7 @@ layout(set = 0, binding = 0) uniform GloablUbo {
 	vec3 lightPosition;
 	uint cols;
 	float time;
-	uint caminata;
+	uint navegando;
 } ubo;
 
 struct CompUboIner

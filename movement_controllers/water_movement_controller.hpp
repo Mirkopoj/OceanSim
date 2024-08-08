@@ -24,11 +24,11 @@ class WaterMovementController {
    };
 
    void moveInPlaneXZ(GLFWwindow* window, float dt,
-                      LveGameObject& gameObject, float cameraHeight,
-                      uint32_t xn, uint32_t yn);
+                      LveGameObject& gameObject, bool navegando,
+                      uint32_t ext_x, uint32_t ext_y);
 
    KeyMappings keys{};
-   float moveSpeedMin{25.f};
+   float moveSpeedMin{3.f};
    float moveSpeedMax{150.f};
    float lookSpeed{2.f};
    bool normalMouse{true};
